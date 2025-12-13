@@ -1,1 +1,1 @@
-Backend related codes and files here.
+Backend related code and files here.
