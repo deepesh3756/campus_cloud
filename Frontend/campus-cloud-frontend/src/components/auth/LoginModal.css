@@ -1,0 +1,44 @@
+.login-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+}
+
+.login-modal {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 14px;
+  animation: popup 0.25s ease;
+}
+
+.login-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.logo-box {
+  width: 36px;
+  height: 36px;
+  background-color: #2563eb;
+  color: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+@keyframes popup {
+  from {
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
