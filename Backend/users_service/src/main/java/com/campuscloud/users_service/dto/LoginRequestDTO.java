@@ -1,4 +1,4 @@
-package com.campuscloud.users_service.DTO;
+package com.campuscloud.users_service.dto;
 
 import lombok.Data;
 
@@ -7,5 +7,4 @@ public class LoginRequestDTO {
 
 	    private String username;
 	    private String password;
-	
 }
