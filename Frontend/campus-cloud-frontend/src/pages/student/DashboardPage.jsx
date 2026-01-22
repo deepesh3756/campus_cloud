@@ -1,16 +1,18 @@
-import Dashboard from '../../components/student/Dashboard';
+import DashboardHeader from "../../components/student/DashboardHeader";
+import AssignmentStatusSummary from "../../components/student/AssignmentStatusSummary";
+
+import "../../components/student/Dashboard.css";
 
 const DashboardPage = () => {
-  const stats = {
-    totalAssignments: 0,
-    pendingAssignments: 0,
-    submittedAssignments: 0,
-    evaluatedAssignments: 0,
-  };
-
   return (
-    <div className="dashboard-page">
-      <Dashboard stats={stats} />
+    <div className="page-container">
+
+      {/* Page title */}
+      <DashboardHeader />
+
+      {/* Assignment status cards */}
+      <AssignmentStatusSummary />
+
     </div>
   );
 };

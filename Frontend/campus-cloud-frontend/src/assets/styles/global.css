@@ -32,3 +32,11 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+.student-layout {
+  background-color: #f8f9fa;
+}
+
+.main-content {
+  background-color: #f9fafb;
+  min-height: calc(100vh - 120px);
+}

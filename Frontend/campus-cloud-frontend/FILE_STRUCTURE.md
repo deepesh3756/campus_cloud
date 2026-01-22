@@ -1,6 +1,5 @@
 campus-cloud-frontend/
 ├── public/
-│   └── cc-favicon.png
 │
 ├── src/
 │   ├── App.jsx
@@ -13,6 +12,7 @@ campus-cloud-frontend/
 │   │   ├── icons/
 │   │   ├── images/
 │   │   │   └── CampusCloud - Landing Page-hero_img.jpg
+│   │   ├── react.svg
 │   │   └── styles/
 │   │       └── global.css
 │   │
@@ -22,26 +22,15 @@ campus-cloud-frontend/
 │   │   │   └── LoginModal.css
 │   │   │
 │   │   ├── common/
-│   │   │   ├── Navbar.jsx
-│   │   │   │   └── (Wrapper for SiteNavbar)
-│   │   │   │
-│   │   │   ├── SiteNavbar.jsx
-│   │   │   │   ├── Logo (inline)
-│   │   │   │   ├── NavLinks (inline)
-│   │   │   │   └── GuestMenu (inline - Login button)
-│   │   │   │
-│   │   │   ├── AuthenticatedNavbar.jsx
-│   │   │   ├── AuthenticatedNavbar.css
-│   │   │   │   ├── Logo (inline)
-│   │   │   │   ├── Notification Bell (inline)
-│   │   │   │   ├── User Avatar (inline)
-│   │   │   │   └── AuthorizedMenu (inline - Profile, Logout)
-│   │   │   │
-│   │   │   ├── SiteFooter.jsx
 │   │   │   ├── Footer.jsx
-│   │   │   ├── Sidebar.jsx
-│   │   │   ├── Modal.jsx
 │   │   │   ├── Loader.jsx
+│   │   │   ├── Modal.jsx
+│   │   │   ├── Navbar.jsx
+│   │   │   ├── Sidebar.jsx
+│   │   │   ├── Sidebar.css
+│   │   │   ├── SiteFooter.jsx
+│   │   │   ├── SiteNavbar.jsx
+│   │   │   ├── SiteNavbar.css
 │   │   │   ├── Toast.jsx
 │   │   │   └── UserWelcome.jsx
 │   │   │
@@ -61,7 +50,12 @@ campus-cloud-frontend/
 │   │   └── student/
 │   │       ├── AssignmentCard.jsx
 │   │       ├── AssignmentList.jsx
-│   │       ├── Dashboard.jsx
+│   │       ├── AssignmentStatusCard.jsx
+│   │       ├── AssignmentStatusSummary.jsx
+│   │       ├── Dashboard.css
+│   │       ├── DashboardHeader.jsx
+│   │       ├── NotificationDropdown.jsx
+│   │       ├── NotificationDropdown.css
 │   │       ├── StatsCard.jsx
 │   │       └── SubmissionForm.jsx
 │   │
@@ -82,59 +76,37 @@ campus-cloud-frontend/
 │   │   └── useFileUpload.js
 │   │
 │   ├── layouts/
-│   │   ├── StudentLayout.jsx
-│   │   │   ├── AuthenticatedNavbar
-│   │   │   ├── Sidebar
-│   │   │   ├── Main Content (Outlet)
-│   │   │   └── Footer
-│   │   │
+│   │   ├── AdminLayout.jsx
 │   │   ├── FacultyLayout.jsx
-│   │   │   ├── Navbar
-│   │   │   ├── Sidebar
-│   │   │   ├── Main Content (Outlet)
-│   │   │   └── Footer
-│   │   │
-│   │   └── AdminLayout.jsx
-│   │       ├── Navbar
-│   │       ├── Sidebar
-│   │       ├── Main Content (Outlet)
-│   │       └── Footer
+│   │   └── StudentLayout.jsx
 │   │
 │   ├── pages/
 │   │   ├── LandingPage.jsx
 │   │   ├── LandingPage.css
-│   │   │   ├── SiteNavbar
-│   │   │   ├── Hero Section
-│   │   │   │   ├── Title
-│   │   │   │   ├── Subtitle
-│   │   │   │   ├── Get Started Button
-│   │   │   │   └── Hero Image
-│   │   │   ├── LoginModal
-│   │   │   └── SiteFooter
 │   │   │
 │   │   ├── auth/
 │   │   │   └── Login.jsx
 │   │   │
 │   │   ├── admin/
-│   │   │   ├── DashboardPage.jsx
 │   │   │   ├── BatchesPage.jsx
 │   │   │   ├── CoursesPage.jsx
+│   │   │   ├── DashboardPage.jsx
 │   │   │   ├── FacultyPage.jsx
 │   │   │   ├── StudentsPage.jsx
 │   │   │   └── SubjectsPage.jsx
 │   │   │
 │   │   ├── faculty/
-│   │   │   ├── HomePage.jsx
 │   │   │   ├── AnalyticsPage.jsx
 │   │   │   ├── AssignmentsPage.jsx
+│   │   │   ├── HomePage.jsx
 │   │   │   ├── ProfilePage.jsx
 │   │   │   └── SubjectsPage.jsx
 │   │   │
 │   │   └── student/
-│   │       ├── HomePage.jsx
-│   │       ├── DashboardPage.jsx
-│   │       ├── AssignmentsPage.jsx
 │   │       ├── AssignmentDetailPage.jsx
+│   │       ├── AssignmentsPage.jsx
+│   │       ├── DashboardPage.jsx
+│   │       ├── HomePage.jsx
 │   │       └── ProfilePage.jsx
 │   │
 │   ├── routes/
@@ -170,21 +142,19 @@ campus-cloud-frontend/
 │   │
 │   ├── services/
 │   │   ├── api/
-│   │   │   ├── axios.config.js
-│   │   │   │   ├── API base URL configuration
-│   │   │   │   ├── Request interceptor (add auth token)
-│   │   │   │   └── Response interceptor (handle errors)
-│   │   │   │
+│   │   │   ├── academicService.js
+│   │   │   ├── assignmentService.js
 │   │   │   ├── authService.js
 │   │   │   │   ├── login() - with mock for 's/s'
 │   │   │   │   ├── register()
 │   │   │   │   ├── logout()
 │   │   │   │   └── getCurrentUser()
-│   │   │   │
-│   │   │   ├── userService.js
-│   │   │   ├── academicService.js
-│   │   │   ├── assignmentService.js
-│   │   │   └── fileService.js
+│   │   │   ├── axios.config.js
+│   │   │   │   ├── API base URL configuration
+│   │   │   │   ├── Request interceptor (add auth token)
+│   │   │   │   └── Response interceptor (handle errors)
+│   │   │   ├── fileService.js
+│   │   │   └── userService.js
 │   │   │
 │   │   └── storage/
 │   │       └── tokenService.js
@@ -197,7 +167,13 @@ campus-cloud-frontend/
 │       ├── dateFormatter.js
 │       └── fileValidator.js
 │
+├── eslint.config.js
+├── FILE_STRUCTURE.md
 ├── index.html
+├── package.json
+├── package-lock.json
+├── README.md
+└── vite.config.js
 ├── vite.config.js
 ├── eslint.config.js
 ├── package.json

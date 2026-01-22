@@ -15,6 +15,8 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
   z-index: 1000;
   padding: 6px 0;
+  list-style: none;
+  margin: 0;
 }
 
 .profile-dropdown-menu .dropdown-item {
@@ -25,7 +27,6 @@
 .profile-dropdown-menu .dropdown-item:hover {
   background-color: #f8f9fa;
 }
-
 
 /* NOTIFICATION DROPDOWN */
 
@@ -78,4 +79,30 @@
 
 .dropdown-footer a:hover {
   text-decoration: underline;
+}
+.notification-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+
+  min-width: 18px;
+  height: 18px;
+
+  padding: 0 5px;
+
+  background-color: #dc3545;
+  color: #fff;
+
+  border-radius: 999px;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 2px solid #ffffff;
+
+  line-height: 1;
 }

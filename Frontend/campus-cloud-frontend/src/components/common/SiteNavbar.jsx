@@ -1,6 +1,8 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../hooks/useAuth";
+import NotificationDropdown from "../student/NotificationDropdown";
+
 import "./SiteNavbar.css";
 
 const SiteNavbar = ({ onLoginClick }) => {
@@ -35,14 +37,12 @@ const SiteNavbar = ({ onLoginClick }) => {
     };
 
     document.addEventListener("mousedown", handleOutsideClick);
-    return () =>
-      document.removeEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
   return (
     <nav className="navbar navbar-expand-lg bg-white border-bottom sticky-top">
       <div className="container py-2">
-
         {/* LOGO */}
         <Link
           className="navbar-brand fw-bold d-flex align-items-center gap-2"
@@ -67,7 +67,6 @@ const SiteNavbar = ({ onLoginClick }) => {
         </button>
 
         <div className="collapse navbar-collapse" id="siteNavbar">
-
           {/* CENTER LINKS */}
           <ul className="navbar-nav mx-auto gap-lg-4 mb-2 mb-lg-0">
             <li className="nav-item">
@@ -126,8 +125,7 @@ const SiteNavbar = ({ onLoginClick }) => {
             </button>
           ) : (
             <div className="d-flex align-items-center gap-3">
-
-              {/* NOTIFICATION */}
+              {/* NOTIFICATIONS */}
               <div ref={notificationRef} className="position-relative">
                 <button
                   className="btn position-relative p-2"
@@ -138,45 +136,18 @@ const SiteNavbar = ({ onLoginClick }) => {
                 >
                   <i className="bi bi-bell fs-5"></i>
 
-                  <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                    2
-                  </span>
+                  <span className="notification-badge">4</span>
                 </button>
 
                 {showNotification && (
-                  <div className="notification-dropdown">
-                    <div className="dropdown-header fw-semibold">
-                      Notifications
-                    </div>
-
-                    <ul className="list-unstyled mb-0">
-                      <li className="notification-item">
-                        📄 Assignment deadline tomorrow
-                      </li>
-
-                      <li className="notification-item">
-                        ✅ Assignment evaluated
-                      </li>
-
-                      <li className="notification-item">
-                        📢 New announcement from admin
-                      </li>
-                    </ul>
-
-                    <div className="dropdown-footer text-center">
-                      <NavLink to="/student/notifications">
-                        View all
-                      </NavLink>
-                    </div>
-                  </div>
+                  <NotificationDropdown
+                    onClose={() => setShowNotification(false)}
+                  />
                 )}
               </div>
 
               {/* PROFILE DROPDOWN */}
-              <div
-                ref={dropdownRef}
-                className="user-profile-dropdown"
-              >
+              <div ref={dropdownRef} className="user-profile-dropdown">
                 <button
                   className="btn p-0 border-0 bg-transparent"
                   onClick={() => {
@@ -226,7 +197,6 @@ const SiteNavbar = ({ onLoginClick }) => {
                   </ul>
                 )}
               </div>
-
             </div>
           )}
         </div>
