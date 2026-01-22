@@ -4,6 +4,19 @@ import { tokenService } from '../services/storage/tokenService';
 
 const AuthContext = createContext(null);
 
+// ========================================
+// TEMP MOCK AUTH - FOR FRONTEND TESTING ONLY
+// ========================================
+// Change role to: "student" | "faculty" | "admin"
+const MOCK_USER = {
+  id: 1,
+  name: "Mohit",
+  email: "mohit@campuscloud.com",
+  role: "student" // 👈 CHANGE THIS TO TEST DIFFERENT ROLES
+};
+const MOCK_TOKEN = "mock-token-temporary-for-testing";
+// ========================================"
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -12,11 +25,17 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       const token = tokenService.getToken();
       if (token) {
-        try {
-          const userData = await authService.getCurrentUser();
-          setUser(userData);
-        } catch (error) {
-          tokenService.removeToken();
+        // TEMP MOCK AUTH: Check for mock token
+        if (token === MOCK_TOKEN) {
+          setUser(MOCK_USER);
+        } else {
+          // ⬇️ ORIGINAL BACKEND CODE (commented out for testing)
+          // try {
+          //   const userData = await authService.getCurrentUser();
+          //   setUser(userData);
+          // } catch (error) {
+          //   tokenService.removeToken();
+          // }
         }
       }
       setLoading(false);
@@ -26,10 +45,19 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (credentials) => {
-    const response = await authService.login(credentials);
-    tokenService.setToken(response.token);
-    setUser(response.user);
-    return response;
+    // TEMP MOCK AUTH: Simulate login without backend
+    tokenService.setToken(MOCK_TOKEN);
+    setUser(MOCK_USER);
+    return {
+      token: MOCK_TOKEN,
+      user: MOCK_USER
+    };
+    
+    // ⬇️ ORIGINAL BACKEND CODE (commented out for testing)
+    // const response = await authService.login(credentials);
+    // tokenService.setToken(response.token);
+    // setUser(response.user);
+    // return response;
   };
 
   const register = async (userData) => {

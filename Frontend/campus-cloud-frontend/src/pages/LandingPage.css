@@ -1,11 +1,18 @@
 .landing-page {
   background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 /* HERO SECTION */
 
 .hero-section {
   padding: 80px 0 120px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* LEFT SIDE */
@@ -39,6 +46,10 @@
 .hero-image {
   width: 100%;
   max-width: 520px;
+}
+
+footer {
+  flex-shrink: 0;
 }
 
 /* RESPONSIVE */

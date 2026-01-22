@@ -1,11 +1,49 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { useAuth } from "../../hooks/useAuth";
+import "./SiteNavbar.css";
 
 const SiteNavbar = ({ onLoginClick }) => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+
+  const dropdownRef = useRef(null);
+  const notificationRef = useRef(null);
+
+  const handleLogout = async () => {
+    await logout();
+    setShowDropdown(false);
+    setShowNotification(false);
+    navigate("/");
+  };
+
+  // close dropdowns when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target) &&
+        notificationRef.current &&
+        !notificationRef.current.contains(e.target)
+      ) {
+        setShowDropdown(false);
+        setShowNotification(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () =>
+      document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
   return (
     <nav className="navbar navbar-expand-lg bg-white border-bottom sticky-top">
       <div className="container py-2">
 
-        {/* Logo */}
+        {/* LOGO */}
         <Link
           className="navbar-brand fw-bold d-flex align-items-center gap-2"
           to="/"
@@ -19,7 +57,6 @@ const SiteNavbar = ({ onLoginClick }) => {
           CampusCloud
         </Link>
 
-        {/* Mobile toggle */}
         <button
           className="navbar-toggler"
           type="button"
@@ -29,24 +66,169 @@ const SiteNavbar = ({ onLoginClick }) => {
           <span className="navbar-toggler-icon"></span>
         </button>
 
-        {/* Menu */}
         <div className="collapse navbar-collapse" id="siteNavbar">
+
+          {/* CENTER LINKS */}
           <ul className="navbar-nav mx-auto gap-lg-4 mb-2 mb-lg-0">
             <li className="nav-item">
-              <a className="nav-link fw-medium" href="#home">Home</a>
+              <NavLink className="nav-link fw-medium" to="/">
+                Home
+              </NavLink>
             </li>
+
+            {user && (
+              <>
+                <li className="nav-item">
+                  <NavLink
+                    className="nav-link fw-medium"
+                    to="/student/assignments"
+                  >
+                    Assignments
+                  </NavLink>
+                </li>
+
+                <li className="nav-item">
+                  <NavLink
+                    className="nav-link fw-medium"
+                    to="/student/dashboard"
+                  >
+                    Overview
+                  </NavLink>
+                </li>
+              </>
+            )}
+
             <li className="nav-item">
-              <a className="nav-link fw-medium" href="#about">About Us</a>
+              <a className="nav-link fw-medium" href="#about">
+                About Us
+              </a>
             </li>
+
             <li className="nav-item">
-              <a className="nav-link fw-medium" href="#contact">Contact</a>
+              <a className="nav-link fw-medium" href="#contact">
+                Contact
+              </a>
             </li>
-            <li className="nav-item">
-              <a className="nav-link fw-medium" href="#services">Our Services</a>
-            </li>
+
+            {!user && (
+              <li className="nav-item">
+                <a className="nav-link fw-medium" href="#services">
+                  Our Services
+                </a>
+              </li>
+            )}
           </ul>
 
-          <button className="btn btn-primary" onClick={onLoginClick}>Login</button>
+          {/* RIGHT SIDE */}
+          {!user ? (
+            <button className="btn btn-primary" onClick={onLoginClick}>
+              Login
+            </button>
+          ) : (
+            <div className="d-flex align-items-center gap-3">
+
+              {/* NOTIFICATION */}
+              <div ref={notificationRef} className="position-relative">
+                <button
+                  className="btn position-relative p-2"
+                  onClick={() => {
+                    setShowNotification((prev) => !prev);
+                    setShowDropdown(false);
+                  }}
+                >
+                  <i className="bi bi-bell fs-5"></i>
+
+                  <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    2
+                  </span>
+                </button>
+
+                {showNotification && (
+                  <div className="notification-dropdown">
+                    <div className="dropdown-header fw-semibold">
+                      Notifications
+                    </div>
+
+                    <ul className="list-unstyled mb-0">
+                      <li className="notification-item">
+                        📄 Assignment deadline tomorrow
+                      </li>
+
+                      <li className="notification-item">
+                        ✅ Assignment evaluated
+                      </li>
+
+                      <li className="notification-item">
+                        📢 New announcement from admin
+                      </li>
+                    </ul>
+
+                    <div className="dropdown-footer text-center">
+                      <NavLink to="/student/notifications">
+                        View all
+                      </NavLink>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* PROFILE DROPDOWN */}
+              <div
+                ref={dropdownRef}
+                className="user-profile-dropdown"
+              >
+                <button
+                  className="btn p-0 border-0 bg-transparent"
+                  onClick={() => {
+                    setShowDropdown((prev) => !prev);
+                    setShowNotification(false);
+                  }}
+                >
+                  <div className="position-relative">
+                    <div
+                      className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+                      style={{
+                        width: 38,
+                        height: 38,
+                        backgroundColor: "#6f42c1",
+                      }}
+                    >
+                      {user?.name?.[0] || "U"}
+                    </div>
+
+                    <span
+                      className="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle"
+                      style={{ width: 10, height: 10 }}
+                    />
+                  </div>
+                </button>
+
+                {showDropdown && (
+                  <ul className="profile-dropdown-menu">
+                    <li>
+                      <NavLink
+                        to="/student/profile"
+                        className="dropdown-item"
+                        onClick={() => setShowDropdown(false)}
+                      >
+                        Profile <i className="bi bi-person"></i>
+                      </NavLink>
+                    </li>
+
+                    <li>
+                      <button
+                        className="dropdown-item text-danger"
+                        onClick={handleLogout}
+                      >
+                        Logout <i className="bi bi-box-arrow-left"></i>
+                      </button>
+                    </li>
+                  </ul>
+                )}
+              </div>
+
+            </div>
+          )}
         </div>
       </div>
     </nav>

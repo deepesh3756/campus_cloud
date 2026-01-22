@@ -1,20 +1,31 @@
 import "./LoginModal.css";
 import { Link, useNavigate } from "react-router-dom";
-
-
+import { useAuth } from "../../hooks/useAuth";
 import { useState } from "react";
 
 const LoginModal = ({ show, onClose }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const { login, user } = useAuth();
   const navigate = useNavigate();
+  
   if (!show) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (username === "s" && password === "s") {
-      navigate("/student/HomePage");
-      if (onClose) onClose();
+    try {
+      setError("");
+      // TEMP MOCK AUTH: login() ignores credentials and uses MOCK_USER
+      await login({ username, password });
+      
+      // Navigate based on user role after login
+      setTimeout(() => {
+        if (onClose) onClose();
+      }, 100);
+    } catch (err) {
+      setError("Login failed. Please try again.");
+      console.error("Login error:", err);
     }
   };
 
@@ -32,6 +43,7 @@ const LoginModal = ({ show, onClose }) => {
         {/* BODY */}
         <div className="card-body px-4 pb-4">
           <h5 className="fw-bold mb-3">Login</h5>
+          {error && <div className="alert alert-danger small mb-3">{error}</div>}
           <form onSubmit={handleSubmit}>
             {/* Username */}
             <div className="mb-3">

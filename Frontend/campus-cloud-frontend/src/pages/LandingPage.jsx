@@ -37,12 +37,12 @@ const LandingPage = () => {
                 and faculty.
               </p>
 
-              <Link
-                to="/register"
+              <button
+                onClick={() => setShowLoginModal(true)}
                 className="btn btn-primary btn-lg mt-3 px-4"
               >
                 Get Started
-              </Link>
+              </button>
             </div>
 
             {/* RIGHT IMAGE */}

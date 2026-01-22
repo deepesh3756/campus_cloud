@@ -5,7 +5,6 @@ import RoleBasedRoute from './RoleBasedRoute';
 
 // Auth Pages
 import Login from '../pages/auth/Login';
-import Register from '../pages/auth/Register';
 
 // Student Pages
 import StudentLayout from '../layouts/StudentLayout';
@@ -40,7 +39,6 @@ const AppRoutes = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
 
       {/* Student Routes */}
       <Route
@@ -109,10 +107,10 @@ const AppRoutes = () => {
             <Navigate
               to={
                 user.role === 'admin'
-                  ? '/admin/dashboard'
+                  ? '/admin'
                   : user.role === 'faculty'
                     ? '/faculty'
-                    : '/student/dashboard'
+                    : '/student'
               }
               replace
             />

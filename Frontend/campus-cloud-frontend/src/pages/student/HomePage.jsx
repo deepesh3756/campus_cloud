@@ -10,8 +10,7 @@ const HomePage = () => {
   return (
     <div className="bg-light min-vh-100">
 
-      <SiteNavbar />
-
+      
       <main className="container py-5">
 
         {/* Welcome */}
@@ -62,7 +61,7 @@ const HomePage = () => {
 
       </main>
 
-      <SiteFooter />
+    
 
     </div>
   );
