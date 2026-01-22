@@ -1,7 +1,5 @@
 package com.campuscloud.users_service.entity;
 
-import org.springframework.context.annotation.Role;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -9,30 +7,49 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-	@Table(name = "accounts")
-	@Getter @Setter
-	public class Account {
+@Table(name = "accounts")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class Account {
 
-	    @Id
-	    @GeneratedValue(strategy = GenerationType.IDENTITY)
-	    private Long accountId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "account_id")
+    private Long accountId;
 
-	    @Column(unique = true, nullable = false)
-	    private String username;
+    @Column(name = "username", nullable = false, unique = true, length = 100)
+    private String username;
 
-	    @Column(nullable = false)
-	    private String passwordHash;
+    @Column(name = "password_hash", nullable = false, length = 255)
+    private String passwordHash;
 
-	    @Enumerated(EnumType.STRING)
-	    private Role role;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    private Role role;
 
-	    private boolean isActive = true;
-	}
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
+    @Column(
+        name = "created_at",
+        nullable = false,
+        updatable = false,
+        insertable = false
+    )
+    private java.time.LocalDateTime createdAt;
+}
+
+
 
 	
 

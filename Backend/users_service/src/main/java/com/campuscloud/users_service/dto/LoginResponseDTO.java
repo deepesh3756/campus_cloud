@@ -1,4 +1,4 @@
-package com.campuscloud.users_service.DTO;
+package com.campuscloud.users_service.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -10,5 +10,4 @@ public class LoginResponseDTO {
 	    private String role;
 	   // private String token;   // JWT token
 	
-
 }

@@ -1,8 +1,8 @@
 package com.campuscloud.users_service.entity;
 
-public enum Gender 
+public enum Role 
 {
-	MALE,
-	FEMALE,
-	OTHER
+	STUDENT, 
+	FACULTY,
+	ADMIN
 }
