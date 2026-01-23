@@ -17,6 +17,7 @@ import com.campuscloud.users_service.entity.User;
 import com.campuscloud.users_service.entity.UserPrincipal;
 import com.campuscloud.users_service.repository.AdminRepository;
 import com.campuscloud.users_service.repository.UserRepository;
+import com.campuscloud.users_service.security.JwtUtil;
 import com.campuscloud.users_service.service.AuthService;
 
 import jakarta.transaction.Transactional;
@@ -27,37 +28,13 @@ import lombok.RequiredArgsConstructor;
 public class AuthServiceImpl implements AuthService 
 {
 	private final AuthenticationManager authenticationManager;
+	private final PasswordEncoder passwordEncoder;
+	private final JwtUtil jwtUtil;
+	
 	private final UserRepository userRepository;
 	private final AdminRepository adminRepository;
-	private final PasswordEncoder passwordEncoder;
-
+	
 	/*
-    @Transactional
-    public LoginResponseDTO login(LoginRequestDTO request) {
-    	
-    	User user = userRepository.findByUsername(request.getUsername())
-    	        .orElseThrow(() -> new RuntimeException("Invalid username or password"));
-    	
-    	if (user.getStatus()!=Status.ACTIVE) {
-            throw new RuntimeException("Account is disabled");
-        }
-
-	    boolean matches = passwordEncoder.matches(
-	        request.getPassword(),
-	        user.getPasswordHash()
-	    );
-
-	    if (!matches) {
-	        throw new RuntimeException("Invalid username or password");
-	    }
-
-        return new LoginResponseDTO(
-        		user.getUsername(),
-        		user.getRole().name()
-        );
-    }
-    */
-    
     @Override
     public LoginResponseDTO login(LoginRequestDTO request) {
 
@@ -75,6 +52,30 @@ public class AuthServiceImpl implements AuthService
         return new LoginResponseDTO(
             user.getUsername(),
             user.getRole().name()
+        );
+    }
+    */
+	
+	@Override
+    public LoginResponseDTO login(LoginRequestDTO request) {
+
+        Authentication authentication =
+                authenticationManager.authenticate(
+                        new UsernamePasswordAuthenticationToken(
+                                request.getUsername(),
+                                request.getPassword()
+                        )
+                );
+
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        User user = principal.getUser();
+
+        String token = jwtUtil.generateToken(user);
+
+        return new LoginResponseDTO(
+                user.getUsername(),
+                user.getRole().name(),
+                token
         );
     }
     

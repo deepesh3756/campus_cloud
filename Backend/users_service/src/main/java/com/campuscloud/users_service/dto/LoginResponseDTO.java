@@ -4,10 +4,9 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class LoginResponseDTO {
-	 
+public class LoginResponseDTO 
+{
 	    private String username;
 	    private String role;
-	   // private String token;   // JWT token
-	
+	    private String token;
 }
