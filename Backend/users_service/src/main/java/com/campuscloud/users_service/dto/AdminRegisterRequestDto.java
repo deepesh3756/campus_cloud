@@ -10,8 +10,9 @@ public class AdminRegisterRequestDto {
     private String password;
 
     // Admin profile data
-    private String name;
+    private String firstName;
+    private String lastName;
     private String email;
-    private String phone;
+    private String mobile;
     private String gender; // MALE | FEMALE | OTHER
 }

@@ -1,5 +1,7 @@
 package com.campuscloud.users_service.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -7,6 +9,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -15,30 +18,48 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "accounts")
+@Table(
+    name = "users",
+    indexes = {
+        @Index(
+            name = "idx_role_status",
+            columnList = "role, status"
+        )
+    }
+)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Account {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "account_id")
-    private Long accountId;
+    @Column(name = "user_id")
+    private Long userId;
 
-    @Column(name = "username", nullable = false, unique = true, length = 100)
+    @Column(
+        name = "username",
+        nullable = false,
+        unique = true,
+        length = 100
+    )
     private String username;
 
-    @Column(name = "password_hash", nullable = false, length = 255)
+    @Column(
+        name = "password_hash",
+        nullable = false,
+        length = 255
+    )
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
     private Role role;
 
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private Status status = Status.ACTIVE;
 
     @Column(
         name = "created_at",
@@ -46,7 +67,15 @@ public class Account {
         updatable = false,
         insertable = false
     )
-    private java.time.LocalDateTime createdAt;
+    private LocalDateTime createdAt;
+
+    @Column(
+        name = "updated_at",
+        nullable = false,
+        insertable = false,
+        updatable = false
+    )
+    private LocalDateTime updatedAt;
 }
 
 

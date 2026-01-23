@@ -32,6 +32,6 @@ public class AuthController {
         authService.registerAdmin(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body("Student registered successfully");
+                .body("Admin registered successfully");
     }
 }

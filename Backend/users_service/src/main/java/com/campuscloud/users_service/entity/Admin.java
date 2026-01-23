@@ -10,13 +10,20 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "admins")
+@Table(
+    name = "admins",
+    indexes = {
+        @Index(name = "idx_email", columnList = "email"),
+        @Index(name = "idx_students_user", columnList = "user_id")
+    }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -30,24 +37,31 @@ public class Admin {
 
     @OneToOne(optional = false)
     @JoinColumn(
-        name = "account_id",
+        name = "user_id",   // ✅ FIXED
         nullable = false,
         unique = true
     )
-    private Account account;
+    private User user;
 
-    @Column(name = "name", nullable = false, length = 100)
-    private String name;
+    @Column(name = "first_name", nullable = false, length = 100)
+    private String firstName;
 
-    @Column(name = "email", nullable = false, length = 100)
+    @Column(name = "last_name", nullable = false, length = 100)
+    private String lastName;
+
+    @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 
-    @Column(name = "phone", length = 15)
-    private String phone;
+    @Column(name = "mobile", nullable = false, length = 15)
+    private String mobile;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "gender")
+    @Column(name = "gender", nullable = false)
     private Gender gender;
+
+    @Column(name = "profile_picture_url", length = 500)
+    private String profilePictureUrl;
 }
+
 
 
