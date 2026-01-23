@@ -11,9 +11,12 @@ const SiteNavbar = ({ onLoginClick }) => {
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
+  const navbarRef = useRef(null);
 
   const handleLogout = async () => {
     await logout();
@@ -21,6 +24,26 @@ const SiteNavbar = ({ onLoginClick }) => {
     setShowNotification(false);
     navigate("/");
   };
+
+  // Handle scroll to show/hide navbar
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY > lastScrollY && currentScrollY > 80) {
+        // Scrolling down
+        setIsVisible(false);
+      } else {
+        // Scrolling up
+        setIsVisible(true);
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
 
   // close dropdowns when clicking outside
   useEffect(() => {
@@ -41,7 +64,10 @@ const SiteNavbar = ({ onLoginClick }) => {
   }, []);
 
   return (
-    <nav className="navbar navbar-expand-lg bg-white border-bottom sticky-top">
+    <nav 
+      ref={navbarRef}
+      className={`navbar navbar-expand-lg bg-white border-bottom sticky-top navbar-hide ${isVisible ? "navbar-show" : ""}`}
+    >
       <div className="container py-2">
         {/* LOGO */}
         <Link
@@ -98,15 +124,15 @@ const SiteNavbar = ({ onLoginClick }) => {
             )}
 
             <li className="nav-item">
-              <a className="nav-link fw-medium" href="#about">
+              <NavLink className="nav-link fw-medium" to="/about">
                 About Us
-              </a>
+              </NavLink>
             </li>
 
             <li className="nav-item">
-              <a className="nav-link fw-medium" href="#contact">
+              <NavLink className="nav-link fw-medium" to="/contact">
                 Contact
-              </a>
+              </NavLink>
             </li>
 
             {!user && (

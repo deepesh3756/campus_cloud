@@ -1,58 +1,80 @@
 .sidebar {
-  width: 240px;
+  width: 260px;
   height: calc(100vh - 70px);
   background: #ffffff;
   border-right: 1px solid #eee;
   position: sticky;
   top: 70px;
   transition: width 0.25s ease;
-  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
 }
 
+/* COLLAPSED */
 .sidebar.collapsed {
-  width: 70px;
+  width: 72px;
 }
 
-/* TOGGLE BUTTON */
+/* =====================
+   HEADER
+===================== */
 
-.sidebar-toggle {
-  position: absolute;
-  top: 15px;
-  right: -14px;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  cursor: pointer;
+.sidebar-header {
+  height: 56px;
+  padding: 0 22px;
+  border-bottom: 1px solid #eee;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
 }
 
-/* MENU */
+.sidebar-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.sidebar-collapse-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+}
+
+.sidebar-collapse-btn:hover {
+  background: #f3f4f6;
+}
+
+/* =====================
+   MENU
+===================== */
 
 .sidebar-menu {
   list-style: none;
-  padding: 0;
+  padding: 12px;
   margin: 0;
+  flex: 1;
 }
 
 .sidebar-menu li {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
+
+/* =====================
+   LINKS
+===================== */
 
 .sidebar-link {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 20px;
-  text-decoration: none;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
   color: #374151;
   font-weight: 500;
-  border-radius: 10px;
-  margin: 0 10px;
-  transition: all 0.2s;
+  text-decoration: none;
+  transition: 0.2s;
 }
 
 .sidebar-link:hover {
@@ -64,7 +86,58 @@
   color: #4f46e5;
 }
 
-/* COLLAPSED */
+.sidebar-link-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* =====================
+   DROPDOWN
+===================== */
+
+.sidebar-dropdown-toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* =====================
+   SUBMENU
+===================== */
+
+.sidebar-submenu {
+  margin-top: 4px;
+  margin-left: 12px;
+  padding-left: 14px;
+  border-left: 2px solid #e5e7eb;
+}
+
+.sidebar-sublink {
+  display: block;
+  padding: 8px 0;
+  font-size: 14px;
+  color: #6b7280;
+  text-decoration: none;
+}
+
+.sidebar-sublink:hover {
+  color: #4f46e5;
+}
+
+.sidebar-sublink.active {
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+/* =====================
+   COLLAPSED MODE
+===================== */
+
+.sidebar.collapsed .sidebar-title {
+  display: none;
+}
 
 .sidebar.collapsed .sidebar-link {
   justify-content: center;
@@ -72,5 +145,15 @@
 }
 
 .sidebar.collapsed .sidebar-link span {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-link-content {
+  gap: 0;
+}
+
+.sidebar.collapsed .sidebar-submenu,
+.sidebar.collapsed svg + span,
+.sidebar.collapsed .sidebar-dropdown svg:last-child {
   display: none;
 }

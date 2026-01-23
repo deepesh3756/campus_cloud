@@ -24,19 +24,19 @@ const AssignmentStatusSummary = () => {
     <div className="status-summary-grid">
 
       <AssignmentStatusCard
-        title="Pending Assignments"
+        title="Pending"
         total={8}
         data={pending}
       />
 
       <AssignmentStatusCard
-        title="Submitted Assignments"
+        title="Submitted"
         total={12}
         data={submitted}
       />
 
       <AssignmentStatusCard
-        title="Evaluated Assignments"
+        title="Evaluated  "
         total={6}
         data={evaluated}
       />

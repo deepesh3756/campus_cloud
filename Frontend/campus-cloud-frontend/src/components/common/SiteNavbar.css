@@ -1,3 +1,16 @@
+/* NAVBAR HIDE/SHOW ON SCROLL */
+
+.navbar-hide {
+  transform: translateY(-100%);
+  transition: transform 0.3s ease-in-out;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-show {
+  transform: translateY(0);
+  transition: transform 0.3s ease-in-out;
+}
+
 /* PROFILE DROPDOWN */
 
 .user-profile-dropdown {

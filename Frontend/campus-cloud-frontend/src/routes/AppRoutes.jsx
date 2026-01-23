@@ -32,6 +32,9 @@ import StudentsPage from '../pages/admin/StudentsPage';
 import FacultyPage from '../pages/admin/FacultyPage';
 import LandingPage from '../pages/LandingPage';
 
+import AboutPage from '../pages/AboutPage';
+import ContactPage from '../pages/ContactPage';
+
 const AppRoutes = () => {
   const { user } = useAuth();
 
@@ -39,6 +42,8 @@ const AppRoutes = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
+      <Route path="/about" element={<AboutPage />} />
+      <Route path="/contact" element={<ContactPage />} />
 
       {/* Student Routes */}
       <Route
@@ -53,6 +58,7 @@ const AppRoutes = () => {
         element={<StudentLayout />}
       >
         <Route index element={<StudentHomePage />} />
+        <Route path="subjects/:subjectKey" element={<StudentAssignmentsPage />} />
         <Route path="dashboard" element={<StudentDashboardPage />} />
         <Route path="assignments" element={<StudentAssignmentsPage />} />
         <Route path="assignments/:id" element={<AssignmentDetailPage />} />
