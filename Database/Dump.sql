@@ -39,7 +39,7 @@ CREATE TABLE `admins` (
   KEY `idx_email` (`email`),
   KEY `idx_students_user` (`user_id`),
   CONSTRAINT `fk_admins_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -48,7 +48,7 @@ CREATE TABLE `admins` (
 
 LOCK TABLES `admins` WRITE;
 /*!40000 ALTER TABLE `admins` DISABLE KEYS */;
-INSERT INTO `admins` VALUES (1,1,'System','Admin','admin@example.com','9000000000','OTHER',NULL),(3,10,'System','Administrator','admin.test01@example.com','9000000001','OTHER',NULL);
+INSERT INTO `admins` VALUES (1,1,'System','Admin','admin@example.com','9000000000','OTHER',NULL),(2,9,'System','Administrator 1','admin.test01@example.com','9000000001','MALE',NULL);
 /*!40000 ALTER TABLE `admins` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -88,7 +88,7 @@ CREATE TABLE `assignments` (
 
 LOCK TABLES `assignments` WRITE;
 /*!40000 ALTER TABLE `assignments` DISABLE KEYS */;
-INSERT INTO `assignments` VALUES (1,1,2,'Communication Basics Assignment','Write a short essay explaining the importance of effective communication in professional environments.','ec_comm_basics.pdf','/assignments/ec_comm_basics.pdf','application/pdf','2025-03-15 23:59:59','ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06'),(2,1,2,'Listening Skills Exercise','Prepare a report on active listening techniques with real-life examples.','ec_listening_skills.pdf','/assignments/ec_listening_skills.pdf','application/pdf','2025-03-25 23:59:59','ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06'),(3,1,2,'Presentation Skills Task','Create a 5-minute presentation on a technical topic of your choice.','ec_presentation_skills.pdf','/assignments/ec_presentation_skills.pdf','application/pdf','2025-04-05 23:59:59','ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06'),(4,1,2,'Group Discussion Reflection','Submit a reflection document describing your experience in a group discussion session.','ec_group_discussion.pdf','/assignments/ec_group_discussion.pdf','application/pdf','2025-04-15 23:59:59','ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06'),(5,2,2,'Servlet Basics Assignment','Implement a basic servlet that handles GET and POST requests.','wbjp_servlet_basics.pdf','/assignments/wbjp_servlet_basics.pdf','application/pdf','2025-03-20 23:59:59','ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06'),(6,2,2,'JSP Form Handling Task','Create a JSP-based form and process user input on the server side.','wbjp_jsp_forms.pdf','/assignments/wbjp_jsp_forms.pdf','application/pdf','2025-04-10 23:59:59','ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06');
+INSERT INTO `assignments` VALUES (1,1,2,'Communication Basics Assignment','Write a short essay explaining the importance of effective communication in professional environments.','ec_comm_basics.pdf','/assignments/ec_comm_basics.pdf','application/pdf','2025-03-15 23:59:59','ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36'),(2,1,2,'Listening Skills Exercise','Prepare a report on active listening techniques with real-life examples.','ec_listening_skills.pdf','/assignments/ec_listening_skills.pdf','application/pdf','2025-03-25 23:59:59','ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36'),(3,1,2,'Presentation Skills Task','Create a 5-minute presentation on a technical topic of your choice.','ec_presentation_skills.pdf','/assignments/ec_presentation_skills.pdf','application/pdf','2025-04-05 23:59:59','ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36'),(4,1,2,'Group Discussion Reflection','Submit a reflection document describing your experience in a group discussion session.','ec_group_discussion.pdf','/assignments/ec_group_discussion.pdf','application/pdf','2025-04-15 23:59:59','ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36'),(5,2,2,'Servlet Basics Assignment','Implement a basic servlet that handles GET and POST requests.','wbjp_servlet_basics.pdf','/assignments/wbjp_servlet_basics.pdf','application/pdf','2025-03-20 23:59:59','ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36'),(6,2,2,'JSP Form Handling Task','Create a JSP-based form and process user input on the server side.','wbjp_jsp_forms.pdf','/assignments/wbjp_jsp_forms.pdf','application/pdf','2025-04-10 23:59:59','ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36');
 /*!40000 ALTER TABLE `assignments` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -148,7 +148,7 @@ CREATE TABLE `batch_course_subjects` (
 
 LOCK TABLES `batch_course_subjects` WRITE;
 /*!40000 ALTER TABLE `batch_course_subjects` DISABLE KEYS */;
-INSERT INTO `batch_course_subjects` VALUES (1,1,1,'2026-01-22 20:35:06'),(2,1,11,'2026-01-22 20:35:06'),(3,2,1,'2026-01-22 20:35:06'),(4,3,1,'2026-01-22 20:35:06'),(5,4,1,'2026-01-22 20:35:06'),(6,5,1,'2026-01-22 20:35:06'),(7,5,11,'2026-01-22 20:35:06'),(8,6,1,'2026-01-22 20:35:06'),(9,7,1,'2026-01-22 20:35:06'),(10,8,1,'2026-01-22 20:35:06');
+INSERT INTO `batch_course_subjects` VALUES (1,1,1,'2026-01-24 07:11:36'),(2,1,11,'2026-01-24 07:11:36'),(3,2,1,'2026-01-24 07:11:36'),(4,3,1,'2026-01-24 07:11:36'),(5,4,1,'2026-01-24 07:11:36'),(6,5,1,'2026-01-24 07:11:36'),(7,5,11,'2026-01-24 07:11:36'),(8,6,1,'2026-01-24 07:11:36'),(9,7,1,'2026-01-24 07:11:36'),(10,8,1,'2026-01-24 07:11:36');
 /*!40000 ALTER TABLE `batch_course_subjects` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -181,7 +181,7 @@ CREATE TABLE `batch_courses` (
 
 LOCK TABLES `batch_courses` WRITE;
 /*!40000 ALTER TABLE `batch_courses` DISABLE KEYS */;
-INSERT INTO `batch_courses` VALUES (1,251,1,'2025-02-04','2025-08-22','2026-01-22 20:35:06'),(2,251,2,'2025-02-04','2025-08-22','2026-01-22 20:35:06'),(3,251,3,'2025-02-04','2025-08-22','2026-01-22 20:35:06'),(4,251,4,'2025-02-04','2025-08-22','2026-01-22 20:35:06'),(5,252,1,'2025-08-22','2026-02-04','2026-01-22 20:35:06'),(6,252,2,'2025-08-22','2026-02-04','2026-01-22 20:35:06'),(7,252,3,'2025-08-22','2026-02-04','2026-01-22 20:35:06'),(8,252,4,'2025-08-22','2026-02-04','2026-01-22 20:35:06');
+INSERT INTO `batch_courses` VALUES (1,251,1,'2025-02-04','2025-08-22','2026-01-24 07:11:36'),(2,251,2,'2025-02-04','2025-08-22','2026-01-24 07:11:36'),(3,251,3,'2025-02-04','2025-08-22','2026-01-24 07:11:36'),(4,251,4,'2025-02-04','2025-08-22','2026-01-24 07:11:36'),(5,252,1,'2025-08-22','2026-02-04','2026-01-24 07:11:36'),(6,252,2,'2025-08-22','2026-02-04','2026-01-24 07:11:36'),(7,252,3,'2025-08-22','2026-02-04','2026-01-24 07:11:36'),(8,252,4,'2025-08-22','2026-02-04','2026-01-24 07:11:36');
 /*!40000 ALTER TABLE `batch_courses` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -215,7 +215,7 @@ CREATE TABLE `batches` (
 
 LOCK TABLES `batches` WRITE;
 /*!40000 ALTER TABLE `batches` DISABLE KEYS */;
-INSERT INTO `batches` VALUES (251,'FEB_2025','2025-02-04','2025-08-22','COMPLETED','February 2025 batch','2026-01-22 20:35:06','2026-01-22 20:35:06'),(252,'AUG_2025','2025-08-22','2026-02-04','ACTIVE','August 2025 batch','2026-01-22 20:35:06','2026-01-22 20:35:06');
+INSERT INTO `batches` VALUES (251,'FEB_2025','2025-02-04','2025-08-22','COMPLETED','February 2025 batch','2026-01-24 07:11:35','2026-01-24 07:11:35'),(252,'AUG_2025','2025-08-22','2026-02-04','ACTIVE','August 2025 batch','2026-01-24 07:11:35','2026-01-24 07:11:35');
 /*!40000 ALTER TABLE `batches` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -246,7 +246,7 @@ CREATE TABLE `courses` (
 
 LOCK TABLES `courses` WRITE;
 /*!40000 ALTER TABLE `courses` DISABLE KEYS */;
-INSERT INTO `courses` VALUES (1,'PG-DAC','PG Diploma in Advanced Computing',6,'ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06'),(2,'PG-DBDA','PG Diploma in Big Data Analytics',6,'ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06'),(3,'PG-DTSS','PG Diploma in IT Infrastructure, Systems and Security',6,'ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06'),(4,'PG-DAI','PG Diploma in Artificial Intelligence',6,'ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06');
+INSERT INTO `courses` VALUES (1,'PG-DAC','PG Diploma in Advanced Computing',6,'ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36'),(2,'PG-DBDA','PG Diploma in Big Data Analytics',6,'ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36'),(3,'PG-DTSS','PG Diploma in IT Infrastructure, Systems and Security',6,'ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36'),(4,'PG-DAI','PG Diploma in Artificial Intelligence',6,'ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36');
 /*!40000 ALTER TABLE `courses` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -314,8 +314,37 @@ CREATE TABLE `faculty_assignments` (
 
 LOCK TABLES `faculty_assignments` WRITE;
 /*!40000 ALTER TABLE `faculty_assignments` DISABLE KEYS */;
-INSERT INTO `faculty_assignments` VALUES (1,2,1,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(2,3,1,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(3,1,2,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(4,2,3,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(5,3,3,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(6,2,4,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(7,3,4,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(8,2,5,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(9,3,5,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(10,2,6,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(11,3,6,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(12,1,7,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(13,2,8,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(14,3,8,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(15,2,9,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(16,3,9,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(17,2,10,'2026-01-23','ACTIVE','2026-01-22 20:35:06'),(18,3,10,'2026-01-23','ACTIVE','2026-01-22 20:35:06');
+INSERT INTO `faculty_assignments` VALUES (1,2,1,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(2,3,1,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(3,1,2,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(4,2,3,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(5,3,3,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(6,2,4,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(7,3,4,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(8,2,5,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(9,3,5,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(10,2,6,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(11,3,6,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(12,1,7,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(13,2,8,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(14,3,8,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(15,2,9,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(16,3,9,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(17,2,10,'2026-01-24','ACTIVE','2026-01-24 07:11:36'),(18,3,10,'2026-01-24','ACTIVE','2026-01-24 07:11:36');
 /*!40000 ALTER TABLE `faculty_assignments` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `refresh_tokens`
+--
+
+DROP TABLE IF EXISTS `refresh_tokens`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `refresh_tokens` (
+  `token_id` bigint NOT NULL AUTO_INCREMENT,
+  `token` varchar(255) NOT NULL,
+  `user_id` bigint NOT NULL,
+  `expiry_date` timestamp NOT NULL,
+  PRIMARY KEY (`token_id`),
+  UNIQUE KEY `token` (`token`),
+  UNIQUE KEY `user_id` (`user_id`),
+  CONSTRAINT `fk_refresh_token_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `refresh_tokens`
+--
+
+LOCK TABLES `refresh_tokens` WRITE;
+/*!40000 ALTER TABLE `refresh_tokens` DISABLE KEYS */;
+INSERT INTO `refresh_tokens` VALUES (6,'1c83b3d8-d4db-4295-bad5-71a4fa3fe236',9,'2026-01-31 10:50:05');
+/*!40000 ALTER TABLE `refresh_tokens` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -384,7 +413,7 @@ CREATE TABLE `subjects` (
 
 LOCK TABLES `subjects` WRITE;
 /*!40000 ALTER TABLE `subjects` DISABLE KEYS */;
-INSERT INTO `subjects` VALUES (1,'COMM101','Effective Communication','2026-01-22 20:35:06','2026-01-22 20:35:06'),(2,'APT101','Aptitude','2026-01-22 20:35:06','2026-01-22 20:35:06'),(3,'ADS201','ADS Using Java','2026-01-22 20:35:06','2026-01-22 20:35:06'),(4,'CPP101','C++ Programming','2026-01-22 20:35:06','2026-01-22 20:35:06'),(5,'COS201','COSSDM – Concepts of Software Development Models','2026-01-22 20:35:06','2026-01-22 20:35:06'),(6,'COS202','COSSDM – Git and DevOps','2026-01-22 20:35:06','2026-01-22 20:35:06'),(7,'COS203','COSSDM – Software Design Models','2026-01-22 20:35:06','2026-01-22 20:35:06'),(8,'COS204','COSSDM – Software Testing','2026-01-22 20:35:06','2026-01-22 20:35:06'),(9,'DBT101','Database Technologies','2026-01-22 20:35:06','2026-01-22 20:35:06'),(10,'OOP201','Object-Oriented Programming with Java','2026-01-22 20:35:06','2026-01-22 20:35:06'),(11,'WEB301','Web Based Java Programming','2026-01-22 20:35:06','2026-01-22 20:35:06'),(12,'WEB101','Web Programming Technologies','2026-01-22 20:35:06','2026-01-22 20:35:06');
+INSERT INTO `subjects` VALUES (1,'COMM101','Effective Communication','2026-01-24 07:11:36','2026-01-24 07:11:36'),(2,'APT101','Aptitude','2026-01-24 07:11:36','2026-01-24 07:11:36'),(3,'ADS201','ADS Using Java','2026-01-24 07:11:36','2026-01-24 07:11:36'),(4,'CPP101','C++ Programming','2026-01-24 07:11:36','2026-01-24 07:11:36'),(5,'COS201','COSSDM – Concepts of Software Development Models','2026-01-24 07:11:36','2026-01-24 07:11:36'),(6,'COS202','COSSDM – Git and DevOps','2026-01-24 07:11:36','2026-01-24 07:11:36'),(7,'COS203','COSSDM – Software Design Models','2026-01-24 07:11:36','2026-01-24 07:11:36'),(8,'COS204','COSSDM – Software Testing','2026-01-24 07:11:36','2026-01-24 07:11:36'),(9,'DBT101','Database Technologies','2026-01-24 07:11:36','2026-01-24 07:11:36'),(10,'OOP201','Object-Oriented Programming with Java','2026-01-24 07:11:36','2026-01-24 07:11:36'),(11,'WEB301','Web Based Java Programming','2026-01-24 07:11:36','2026-01-24 07:11:36'),(12,'WEB101','Web Programming Technologies','2026-01-24 07:11:36','2026-01-24 07:11:36');
 /*!40000 ALTER TABLE `subjects` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -469,7 +498,7 @@ CREATE TABLE `users` (
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `username` (`username`),
   KEY `idx_role_status` (`role`,`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -478,7 +507,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'admin1','$2a$dummyhash6','ADMIN','ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06'),(2,'faculty1','$2a$dummyhash4','FACULTY','ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06'),(3,'faculty2','$2a$dummyhash5','FACULTY','ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06'),(4,'faculty3','$2a$dummyhash7','FACULTY','ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06'),(5,'student1','$2a$dummyhash1','STUDENT','ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06'),(6,'student2','$2a$dummyhash2','STUDENT','ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06'),(7,'student3','$2a$dummyhash3','STUDENT','ACTIVE','2026-01-22 20:35:06','2026-01-22 20:35:06'),(8,'old_user_01','$2a$dummyOldHash','STUDENT','INACTIVE','2025-05-22 20:35:06','2026-01-22 20:35:06'),(10,'admin_test_01','$2a$12$R/7ulhngKW28T/6KxrFzQ.rAC4ZA6WN4bbhW2RBzbYz6qHJdE1epy','ADMIN','ACTIVE','2026-01-23 09:33:43','2026-01-23 09:33:43');
+INSERT INTO `users` VALUES (1,'admin1','$2a$dummyhash6','ADMIN','ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36'),(2,'faculty1','$2a$dummyhash4','FACULTY','ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36'),(3,'faculty2','$2a$dummyhash5','FACULTY','ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36'),(4,'faculty3','$2a$dummyhash7','FACULTY','ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36'),(5,'student1','$2a$dummyhash1','STUDENT','ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36'),(6,'student2','$2a$dummyhash2','STUDENT','ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36'),(7,'student3','$2a$dummyhash3','STUDENT','ACTIVE','2026-01-24 07:11:36','2026-01-24 07:11:36'),(8,'old_user_01','$2a$dummyOldHash','STUDENT','ACTIVE','2025-05-24 07:11:36','2025-05-24 07:11:36'),(9,'admin_test_01','$2a$10$u2N7qaMNdX5AUL8fB5Eq1eqDD.omyIDlx4SSgfde9qcP7WyWDflgW','ADMIN','ACTIVE','2026-01-24 15:05:57','2026-01-24 15:05:57');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -498,7 +527,7 @@ DELIMITER ;;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;;
 /*!50003 SET @saved_time_zone      = @@time_zone */ ;;
 /*!50003 SET time_zone             = 'SYSTEM' */ ;;
-/*!50106 CREATE*/ /*!50117 DEFINER=`root`@`localhost`*/ /*!50106 EVENT `ev_deactivate_old_students` ON SCHEDULE EVERY 7 DAY STARTS '2026-01-23 02:05:06' ON COMPLETION NOT PRESERVE ENABLE DO BEGIN
+/*!50106 CREATE*/ /*!50117 DEFINER=`root`@`localhost`*/ /*!50106 EVENT `ev_deactivate_old_students` ON SCHEDULE EVERY 7 DAY STARTS '2026-01-24 12:41:36' ON COMPLETION NOT PRESERVE ENABLE DO BEGIN
     UPDATE users
     SET status = 'INACTIVE'
     WHERE role = 'STUDENT'
@@ -526,4 +555,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-01-24  2:08:08
+-- Dump completed on 2026-01-24 21:59:20

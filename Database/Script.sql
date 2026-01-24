@@ -787,7 +787,19 @@ FROM users
 WHERE status != 'INACTIVE'
 AND created_at < CURRENT_TIMESTAMP - INTERVAL 6 MONTH;
 
-SELECT * FROM users;
-SELECT * FROM admins;
+-- =====================================================
+-- SECTION 5 : REFRESH TOKEN
+-- =====================================================
 
+CREATE TABLE refresh_tokens (
+    token_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    user_id BIGINT NOT NULL UNIQUE,
+    expiry_date TIMESTAMP NOT NULL,
+
+    CONSTRAINT fk_refresh_token_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(user_id)
+        ON DELETE CASCADE
+);
 
