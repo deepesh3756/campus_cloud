@@ -6,7 +6,7 @@ const ProfilePage = () => {
 
   return (
     <ProfilePageCommon
-      initialName={user?.name || "Faculty"}
+      initialName={user?.name || "Admin"}
       initialEmail={user?.email || ""}
       initialPhone={""}
     />

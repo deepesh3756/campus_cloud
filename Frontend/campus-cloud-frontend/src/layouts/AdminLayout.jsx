@@ -11,6 +11,7 @@ const AdminLayout = () => {
     { path: '/admin/subjects', label: 'Subjects' },
     { path: '/admin/students', label: 'Students' },
     { path: '/admin/faculty', label: 'Faculty' },
+    { path: '/admin/profile', label: 'Profile' },
   ];
 
   return (

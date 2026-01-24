@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect } from 'react';
 import authService from '../services/api/authService';
 import { tokenService } from '../services/storage/tokenService';
 
@@ -12,7 +12,7 @@ const MOCK_USER = {
   id: 1,
   name: "Mohit",
   email: "mohit@campuscloud.com",
-  role: "student" // 👈 CHANGE THIS TO TEST DIFFERENT ROLES
+  role: "faculty" // 👈 CHANGE THIS TO TEST DIFFERENT ROLES
 };
 const MOCK_TOKEN = "mock-token-temporary-for-testing";
 // ========================================"
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async (credentials) => {
+  const login = async () => {
     // TEMP MOCK AUTH: Simulate login without backend
     tokenService.setToken(MOCK_TOKEN);
     setUser(MOCK_USER);
@@ -85,14 +85,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };
 
 export default AuthContext;

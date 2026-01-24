@@ -1,0 +1,30 @@
+.course-breadcrumb {
+  padding: 24px 0;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 24px;
+}
+
+.breadcrumb-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.breadcrumb-course {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.breadcrumb-subject {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #4f46e5;
+}
+
+.breadcrumb-separator {
+  color: #d1d5db;
+  flex-shrink: 0;
+}
