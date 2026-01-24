@@ -1,0 +1,156 @@
+================================================================================
+                     SRC DIRECTORY STRUCTURE
+                     Users Service Application
+================================================================================
+
+Project: Campus Cloud - Users Service
+Location: d:\CDAC Project\campus_cloud\Backend\users_service\src
+Generated: January 23, 2026
+
+================================================================================
+COMPLETE DIRECTORY AND FILE STRUCTURE
+================================================================================
+
+src/
+│
+├── main/
+│   ├── java/
+│   │   └── com/
+│   │       └── campuscloud/
+│   │           └── users_service/
+│   │               ├── UsersServiceApplication.java (Main Application Class)
+│   │               │
+│   │               ├── config/
+│   │               │   └── SecurityConfig.java
+│   │               │
+│   │               ├── controller/
+│   │               │   └── AuthController.java
+│   │               │
+│   │               ├── dto/
+│   │               │   ├── AdminRegisterRequestDto.java
+│   │               │   ├── LoginRequestDTO.java
+│   │               │   └── LoginResponseDTO.java
+│   │               │
+│   │               ├── entity/
+│   │               │   ├── Admin.java
+│   │               │   ├── Gender.java
+│   │               │   ├── Role.java
+│   │               │   ├── Status.java
+│   │               │   └── User.java
+│   │               │
+│   │               ├── repository/
+│   │               │   ├── AdminRepository.java
+│   │               │   └── UserRepository.java
+│   │               │
+│   │               └── service/
+│   │                   ├── AuthService.java (Interface)
+│   │                   │
+│   │                   └── impl/
+│   │                       └── AuthServiceImpl.java (Implementation)
+│   │
+│   └── resources/
+│       └── application.properties (Configuration File)
+│
+└── test/
+    └── java/
+        └── com/
+            └── campuscloud/
+                └── users_service/
+                    └── UsersServiceApplicationTests.java (Test Class)
+
+
+================================================================================
+FILE COUNT SUMMARY
+================================================================================
+
+Java Source Files (.java):
+  - Main Application: 1 file
+  - Configuration: 1 file
+  - Controllers: 1 file
+  - Data Transfer Objects (DTOs): 3 files
+  - Entities: 5 files
+  - Repositories: 2 files
+  - Services (Interface): 1 file
+  - Services (Implementation): 1 file
+  - Test Classes: 1 file
+  
+Total Java Files: 16
+
+Resource Files:
+  - Configuration: 1 file (application.properties)
+
+Total Resource Files: 1
+
+GRAND TOTAL: 17 files
+
+
+================================================================================
+DIRECTORY HIERARCHY SUMMARY
+================================================================================
+
+Total Directories: 15
+
+Main Package Path: src/main/java/com/campuscloud/users_service/
+
+Key Subdirectories (6):
+  1. config/      - Spring Security Configuration
+  2. controller/  - REST API Controllers
+  3. dto/         - Data Transfer Objects
+  4. entity/      - JPA Entities
+  5. repository/  - Spring Data JPA Repositories
+  6. service/     - Business Logic & Service Layer
+
+Test Package Path: src/test/java/com/campuscloud/users_service/
+
+Resources Path: src/main/resources/
+
+
+================================================================================
+MODULE BREAKDOWN
+================================================================================
+
+1. SECURITY & AUTHENTICATION
+   - UsersServiceApplication.java (Entry Point)
+   - SecurityConfig.java (Spring Security Configuration)
+   - AuthController.java (REST Endpoints for Auth)
+   - AuthService.java (Interface)
+   - AuthServiceImpl.java (Implementation)
+
+2. DATA ACCESS LAYER
+   - UserRepository.java (User Data Access)
+   - AdminRepository.java (Admin Data Access)
+
+3. DATA MODELS
+   - User.java (User Entity)
+   - Admin.java (Admin Entity)
+   - Role.java (Role Enumeration)
+   - Gender.java (Gender Enumeration)
+   - Status.java (Status Enumeration)
+
+4. API CONTRACTS (DTOs)
+   - LoginRequestDTO.java
+   - LoginResponseDTO.java
+   - AdminRegisterRequestDto.java
+
+5. CONFIGURATION
+   - application.properties
+
+6. TESTING
+   - UsersServiceApplicationTests.java
+
+
+================================================================================
+TECHNOLOGY STACK INDICATORS
+================================================================================
+
+Based on file structure, this project uses:
+  - Spring Boot (Main application framework)
+  - Spring Security (Authentication/Authorization)
+  - Spring Data JPA (Database operations)
+  - Java 8+ (Enum, DTO patterns)
+  - Maven (Build tool - evidenced by pom.xml in parent)
+
+
+================================================================================
+END OF STRUCTURE REPORT
+================================================================================
