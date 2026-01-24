@@ -19,8 +19,10 @@ import ProfilePage from "../pages/student/ProfilePage";
 // Faculty Pages
 import FacultyLayout from '../layouts/FacultyLayout';
 import FacultyHomePage from '../pages/faculty/HomePage';
+import FacultyDashboardPage from '../pages/faculty/DashboardPage';
 import SubjectsPage from '../pages/faculty/SubjectsPage';
 import FacultyAssignmentsPage from '../pages/faculty/AssignmentsPage';
+import AddAssignmentPage from '../pages/faculty/AddAssignmentPage';
 import AnalyticsPage from '../pages/faculty/AnalyticsPage';
 import FacultyProfilePage from '../pages/faculty/ProfilePage';
 
@@ -32,6 +34,7 @@ import CoursesPage from '../pages/admin/CoursesPage';
 import AdminSubjectsPage from '../pages/admin/SubjectsPage';
 import StudentsPage from '../pages/admin/StudentsPage';
 import FacultyPage from '../pages/admin/FacultyPage';
+import AdminProfilePage from '../pages/admin/ProfilePage';
 import LandingPage from '../pages/LandingPage';
 
 import AboutPage from '../pages/AboutPage';
@@ -80,8 +83,10 @@ const AppRoutes = () => {
         element={<FacultyLayout />}
       >
         <Route index element={<FacultyHomePage />} />
+        <Route path="dashboard" element={<FacultyDashboardPage />} />
         <Route path="subjects" element={<SubjectsPage />} />
         <Route path="assignments" element={<FacultyAssignmentsPage />} />
+        <Route path="add-assignment" element={<AddAssignmentPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="profile" element={<FacultyProfilePage />} />
       </Route>
@@ -105,6 +110,7 @@ const AppRoutes = () => {
         <Route path="subjects" element={<AdminSubjectsPage />} />
         <Route path="students" element={<StudentsPage />} />
         <Route path="faculty" element={<FacultyPage />} />
+        <Route path="profile" element={<AdminProfilePage />} />
       </Route>
 
       {/* Default Landing */}

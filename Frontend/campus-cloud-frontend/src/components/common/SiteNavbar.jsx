@@ -96,28 +96,32 @@ const SiteNavbar = ({ onLoginClick }) => {
           {/* CENTER LINKS */}
           <ul className="navbar-nav mx-auto gap-lg-4 mb-2 mb-lg-0">
             <li className="nav-item">
-              <NavLink className="nav-link fw-medium" to="/">
+              <NavLink className="nav-link fw-medium" to={user ? `/${user.role}` : "/"}>
                 Home
               </NavLink>
             </li>
 
-            {user && (
+            {user?.role === "student" && (
               <>
                 <li className="nav-item">
-                  <NavLink
-                    className="nav-link fw-medium"
-                    to="/student/assignments"
-                  >
+                  <NavLink className="nav-link fw-medium" to="/student/assignments">
                     Assignments
                   </NavLink>
                 </li>
 
                 <li className="nav-item">
-                  <NavLink
-                    className="nav-link fw-medium"
-                    to="/student/dashboard"
-                  >
-                    Overview
+                  <NavLink className="nav-link fw-medium" to="/student/dashboard">
+                    Dashboard
+                  </NavLink>
+                </li>
+              </>
+            )}
+
+            {user?.role === "faculty" && (
+              <>
+                <li className="nav-item">
+                  <NavLink className="nav-link fw-medium" to="/faculty/dashboard">
+                    Dashboard
                   </NavLink>
                 </li>
               </>
@@ -152,25 +156,27 @@ const SiteNavbar = ({ onLoginClick }) => {
           ) : (
             <div className="d-flex align-items-center gap-3">
               {/* NOTIFICATIONS */}
-              <div ref={notificationRef} className="position-relative">
-                <button
-                  className="btn position-relative p-2"
-                  onClick={() => {
-                    setShowNotification((prev) => !prev);
-                    setShowDropdown(false);
-                  }}
-                >
-                  <i className="bi bi-bell fs-5"></i>
+              {user?.role === "student" && (
+                <div ref={notificationRef} className="position-relative">
+                  <button
+                    className="btn position-relative p-2"
+                    onClick={() => {
+                      setShowNotification((prev) => !prev);
+                      setShowDropdown(false);
+                    }}
+                  >
+                    <i className="bi bi-bell fs-5"></i>
 
-                  <span className="notification-badge">4</span>
-                </button>
+                    <span className="notification-badge">4</span>
+                  </button>
 
-                {showNotification && (
-                  <NotificationDropdown
-                    onClose={() => setShowNotification(false)}
-                  />
-                )}
-              </div>
+                  {showNotification && (
+                    <NotificationDropdown
+                      onClose={() => setShowNotification(false)}
+                    />
+                  )}
+                </div>
+              )}
 
               {/* PROFILE DROPDOWN */}
               <div ref={dropdownRef} className="user-profile-dropdown">
@@ -204,7 +210,7 @@ const SiteNavbar = ({ onLoginClick }) => {
                   <ul className="profile-dropdown-menu">
                     <li>
                       <NavLink
-                        to="/student/profile"
+                        to={`/${user.role}/profile`}
                         className="dropdown-item"
                         onClick={() => setShowDropdown(false)}
                       >

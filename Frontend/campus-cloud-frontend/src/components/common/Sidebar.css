@@ -101,6 +101,18 @@
   background: none;
   border: none;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: #374151;
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+.sidebar-dropdown-toggle:hover {
+  background: #f3f4f6;
 }
 
 /* =====================
@@ -153,7 +165,27 @@
 }
 
 .sidebar.collapsed .sidebar-submenu,
-.sidebar.collapsed svg + span,
-.sidebar.collapsed .sidebar-dropdown svg:last-child {
+.sidebar.collapsed svg + span {
   display: none;
+}
+
+/* Hide chevron icons in collapsed mode for dropdowns */
+.sidebar.collapsed .sidebar-dropdown-toggle svg:last-child {
+  display: none;
+}
+
+/* Ensure icon stays visible in collapsed dropdown */
+.sidebar.collapsed .sidebar-dropdown-toggle {
+  justify-content: center;
+  padding: 12px;
+}
+
+.sidebar.collapsed .sidebar-dropdown-toggle .sidebar-link-content {
+  gap: 0;
+}
+
+/* Make sure the icon is visible in dropdown */
+.sidebar.collapsed .sidebar-dropdown-toggle svg:first-child {
+  display: block !important;
+  color: #374151;
 }
