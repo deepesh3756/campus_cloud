@@ -55,23 +55,37 @@ public class AuthController
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<RefreshTokenResponseDTO> refreshToken(
-            @RequestBody RefreshTokenRequestDTO request
+    public ResponseEntity<LoginResponseDTO> refreshToken(@RequestBody RefreshTokenRequestDTO request
     ) {
+        // Find refresh token in DB
+        RefreshToken oldRefreshToken =
+            refreshTokenService.findByToken(request.getRefreshToken())
+                .map(refreshTokenService::verifyExpiration)
+                .orElseThrow(() ->
+                    new RuntimeException("Invalid refresh token")
+                );
 
-        RefreshToken refreshToken =
-                refreshTokenService.findByToken(request.getRefreshToken())
-                    .map(refreshTokenService::verifyExpiration)
-                    .orElseThrow(() ->
-                        new RuntimeException("Invalid refresh token")
-                    );
+        User user = oldRefreshToken.getUser();
 
-        User user = refreshToken.getUser();
+        // DELETE old refresh token (rotation)
+        refreshTokenService.delete(oldRefreshToken);
 
+        // Create NEW refresh token
+        RefreshToken newRefreshToken =
+            refreshTokenService.createRefreshToken(user);
+
+        // Create new access token
         String newAccessToken = jwtUtil.generateToken(user);
 
+        // Return BOTH new tokens
         return ResponseEntity.ok(
-            new RefreshTokenResponseDTO(newAccessToken)
+            new LoginResponseDTO(
+                user.getUsername(),
+                user.getRole().name(),
+                newAccessToken,
+                newRefreshToken.getToken()
+            )
         );
     }
+
 }

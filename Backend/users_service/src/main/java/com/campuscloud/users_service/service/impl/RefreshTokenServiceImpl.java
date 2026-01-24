@@ -56,6 +56,11 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     public Optional<RefreshToken> findByToken(String token) {
         return refreshTokenRepository.findByToken(token);
     }
+    
+    @Override
+    public void delete(RefreshToken token) {
+        refreshTokenRepository.delete(token);
+    }
 
     @Override
     public void deleteByUser(User user) {
