@@ -1,6 +1,7 @@
 import { useState } from "react";
 import SiteNavbar from "../components/common/SiteNavbar";
 import SiteFooter from "../components/common/SiteFooter";
+import Sidebar from "../components/common/Sidebar";
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -38,9 +39,11 @@ const ContactPage = () => {
       {/* NAVBAR */}
       <SiteNavbar />
 
-      {/* MAIN CONTENT */}
-      <div style={{ flex: 1 }}>
-        <div className="container py-5">
+      {/* MAIN CONTENT WITH SIDEBAR */}
+      <div style={{ display: "flex", flex: 1 }}>
+        <Sidebar />
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <div className="container py-5">
       {/* ================= HEADER ================= */}
       <div className="text-center mb-5">
         <h2 className="fw-bold">Contact CampusCloud</h2>
@@ -158,7 +161,8 @@ const ContactPage = () => {
           </div>
         </div>
       </div>
-    </div>
+          </div>
+        </div>
       </div>
 
       {/* FOOTER */}
