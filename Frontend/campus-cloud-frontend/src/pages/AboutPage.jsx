@@ -1,6 +1,7 @@
 import { Cloud, Users, BookOpen, Award } from "lucide-react";
 import SiteNavbar from "../components/common/SiteNavbar";
 import SiteFooter from "../components/common/SiteFooter";
+import Sidebar from "../components/common/Sidebar";
 
 const AboutPage = () => {
   return (
@@ -8,9 +9,11 @@ const AboutPage = () => {
       {/* NAVBAR */}
       <SiteNavbar />
 
-      {/* MAIN CONTENT */}
-      <div style={{ flex: 1 }}>
-        <div className="container py-5">
+      {/* MAIN CONTENT WITH SIDEBAR */}
+      <div style={{ display: "flex", flex: 1 }}>
+        <Sidebar />
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <div className="container py-5">
 
       {/* ================= HERO ================= */}
       <div className="text-center mb-5">
@@ -122,7 +125,8 @@ const AboutPage = () => {
           hindered by technical limitations.
         </p>
       </div>
-    </div>
+          </div>
+        </div>
       </div>
 
       {/* FOOTER */}

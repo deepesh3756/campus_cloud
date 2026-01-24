@@ -108,3 +108,20 @@ code {
     opacity: 1;
   }
 }
+.profile-image-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.position-relative:hover .profile-image-overlay {
+  opacity: 1;
+}

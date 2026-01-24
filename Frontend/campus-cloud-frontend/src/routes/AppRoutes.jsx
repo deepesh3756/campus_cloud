@@ -12,7 +12,9 @@ import StudentHomePage from '../pages/student/HomePage';
 import StudentDashboardPage from '../pages/student/DashboardPage';
 import StudentAssignmentsPage from '../pages/student/AssignmentsPage';
 import AssignmentDetailPage from '../pages/student/AssignmentDetailPage';
-import StudentProfilePage from '../pages/student/ProfilePage';
+import ProfilePage from "../pages/student/ProfilePage";
+
+
 
 // Faculty Pages
 import FacultyLayout from '../layouts/FacultyLayout';
@@ -62,7 +64,7 @@ const AppRoutes = () => {
         <Route path="dashboard" element={<StudentDashboardPage />} />
         <Route path="assignments" element={<StudentAssignmentsPage />} />
         <Route path="assignments/:id" element={<AssignmentDetailPage />} />
-        <Route path="profile" element={<StudentProfilePage />} />
+        <Route path="profile" element={<ProfilePage />} />
       </Route>
 
       {/* Faculty Routes */}
