@@ -19,6 +19,7 @@ import com.campuscloud.users_service.entity.UserPrincipal;
 import com.campuscloud.users_service.repository.AdminRepository;
 import com.campuscloud.users_service.repository.UserRepository;
 import com.campuscloud.users_service.security.JwtUtil;
+import com.campuscloud.users_service.service.AuthLoginResult;
 import com.campuscloud.users_service.service.AuthService;
 import com.campuscloud.users_service.service.RefreshTokenService;
 
@@ -37,10 +38,9 @@ public class AuthServiceImpl implements AuthService
 	
 	private final UserRepository userRepository;
 	private final AdminRepository adminRepository;
-	
-
+    
     @Override
-    public LoginResponseDTO login(LoginRequestDTO request) {
+    public AuthLoginResult login(LoginRequestDTO request) {
 
         Authentication authentication =
             authenticationManager.authenticate(
@@ -50,20 +50,22 @@ public class AuthServiceImpl implements AuthService
                 )
             );
 
-        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        UserPrincipal principal =
+            (UserPrincipal) authentication.getPrincipal();
         User user = principal.getUser();
 
         String accessToken = jwtUtil.generateToken(user);
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+        RefreshToken refreshToken =
+            refreshTokenService.createRefreshToken(user);
 
-        return new LoginResponseDTO(
-                user.getUsername(),
-                user.getRole().name(),
+        return new AuthLoginResult(
+                user,
                 accessToken,
-                refreshToken.getToken()
+                refreshToken.getToken(),
+                jwtUtil.getAccessTokenExpirySeconds()
         );
     }
-    
+
     public void registerAdmin(AdminRegisterRequestDto dto) {
 
         // 1️⃣ Check if username already exists

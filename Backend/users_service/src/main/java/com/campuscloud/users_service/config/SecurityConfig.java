@@ -3,6 +3,7 @@ package com.campuscloud.users_service.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,35 +23,22 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfig {
 	
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
-	/*
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
-        http
-            .csrf(csrf -> csrf.disable())   // REST API → disable CSRF
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/users/**").permitAll() // login, register
-                .requestMatchers("/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated()
-            );
-
-        return http.build();
-    }
-    */
     
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
+        	.cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
+        		.requestMatchers(
+                        "/v3/api-docs/**",    // The raw JSON data
+                        "/swagger-ui/**",      // The UI assets (CSS, JS)
+                        "/swagger-ui.html"     // The entry point - http://localhost:8081/swagger-ui/index.html#/
+                    ).permitAll()
         		.requestMatchers("/api/users/**").permitAll() // login, register
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()

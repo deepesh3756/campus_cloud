@@ -6,6 +6,6 @@ import com.campuscloud.users_service.dto.LoginResponseDTO;
 
 public interface AuthService 
 {
-	public LoginResponseDTO login(LoginRequestDTO request);
+	AuthLoginResult login(LoginRequestDTO request);
 	public void registerAdmin(AdminRegisterRequestDto dto);
 }

@@ -23,6 +23,9 @@ public class JwtUtil {
 
     @Value("${jwt.expiration}")
     private long expiration;
+    
+    @Value("${jwt.access.expiration}")
+    private long accessTokenExpirationMs;
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
@@ -58,5 +61,9 @@ public class JwtUtil {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+    
+    public long getAccessTokenExpirySeconds() {
+    	return accessTokenExpirationMs / 1000;
     }
 }
