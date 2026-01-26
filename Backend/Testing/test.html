@@ -8,6 +8,7 @@
 
   <button onclick="login()">LOGIN</button>
   <button onclick="refresh()">REFRESH TOKEN</button>
+  <button onclick="logout()">LOGOUT</button>
 
   <script>
     async function login() {
@@ -16,7 +17,7 @@
         headers: {
           "Content-Type": "application/json"
         },
-        credentials: "include", // 🔥 REQUIRED
+        credentials: "include",
         body: JSON.stringify({
           username: "admin_test_01",
           password: "Admin@123"
@@ -27,15 +28,59 @@
       console.log("LOGIN RESPONSE", data);
     }
 
+    function getCookie(name) {
+      return document.cookie
+        .split("; ")
+        .find(row => row.startsWith(name + "="))
+        ?.split("=")[1];
+    }
+
     async function refresh() {
+      const csrfToken = getCookie("XSRF-TOKEN");
+      //const csrfToken = "invalid_csrf_token"
+      console.log(csrfToken)
+
+      if (!csrfToken) {
+        console.error("CSRF token missing");
+        return;
+      }
+
       const res = await fetch("http://localhost:8081/api/users/refresh-token", {
         method: "POST",
-        credentials: "include" // 🔥 REQUIRED
+        credentials: "include",
+        headers: {
+          "X-XSRF-TOKEN": csrfToken
+        }
       });
+
+      if (!res.ok) {
+        console.error("REFRESH FAILED:", res.status);
+        return;
+      }
 
       const data = await res.json();
       console.log("REFRESH RESPONSE", data);
     }
+
+  async function logout() {
+    const csrfToken = getCookie("XSRF-TOKEN");
+
+    const res = await fetch("http://localhost:8081/api/users/logout", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-XSRF-TOKEN": csrfToken
+      }
+    });
+
+    if (!res.ok) {
+      console.error("LOGOUT FAILED:", res.status);
+      return;
+    }
+
+    console.log("LOGOUT SUCCESS");
+  }
+
   </script>
 </body>
 </html>

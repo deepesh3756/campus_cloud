@@ -30,9 +30,11 @@ public class CorsConfig {
         ));
 
         config.setAllowedHeaders(List.of(
-            "Authorization",
-            "Content-Type"
-        ));
+		    "Authorization",
+		    "Content-Type",
+		    "X-XSRF-TOKEN" // 🔥 REQUIRED for CSRF
+		));
+
 
         // ⭐ REQUIRED for cookies (refresh token)
         config.setAllowCredentials(true);

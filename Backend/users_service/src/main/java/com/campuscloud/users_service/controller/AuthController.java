@@ -12,6 +12,7 @@ import com.campuscloud.users_service.dto.LoginResponseDTO;
 import com.campuscloud.users_service.entity.RefreshToken;
 import com.campuscloud.users_service.entity.User;
 import com.campuscloud.users_service.security.CookieUtil;
+import com.campuscloud.users_service.security.CsrfTokenUtil;
 import com.campuscloud.users_service.security.JwtUtil;
 import com.campuscloud.users_service.service.AuthLoginResult;
 import com.campuscloud.users_service.service.AuthService;
@@ -28,6 +29,7 @@ public class AuthController
     private final RefreshTokenService refreshTokenService;
     private final JwtUtil jwtUtil;
     private final CookieUtil cookieUtil;
+    private final CsrfTokenUtil csrfTokenUtil;
     
     @PostMapping("/register/admin")
     public ResponseEntity<String> registerAdmin(
@@ -53,6 +55,10 @@ public class AuthController
                 cookieUtil.getRefreshTokenMaxAgeMs()
             );
 
+        // create csrf token cookie
+        String csrfToken = csrfTokenUtil.generateToken();
+        ResponseCookie csrfCookie = csrfTokenUtil.createCsrfCookie(csrfToken);
+        
         // 3️⃣ Build final API response
         LoginResponseDTO response = new LoginResponseDTO(
             result.getAccessToken(),
@@ -67,6 +73,7 @@ public class AuthController
         // 4️⃣ Return response + cookie
         return ResponseEntity.ok()
             .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+            .header(HttpHeaders.SET_COOKIE, csrfCookie.toString())
             .body(response);
     }
 
@@ -97,14 +104,19 @@ public class AuthController
         // 3️⃣ Generate new access token
         String newAccessToken = jwtUtil.generateToken(user);
 
+        // 🔄 3.5️⃣ ROTATE CSRF TOKEN (NEW)
+        String newCsrfToken = csrfTokenUtil.generateToken();
+        ResponseCookie newCsrfCookie =
+            csrfTokenUtil.createCsrfCookie(newCsrfToken);
+
         // 4️⃣ Create new refresh cookie
-        ResponseCookie newCookie =
+        ResponseCookie newRefreshCookie =
             cookieUtil.createRefreshTokenCookie(
                 newRefreshToken.getToken(),
                 cookieUtil.getRefreshTokenMaxAgeMs()
             );
 
-        // 5️⃣ Build response DTO (SAME shape as login)
+        // 5️⃣ Build response DTO
         LoginResponseDTO response = new LoginResponseDTO(
             newAccessToken,
             jwtUtil.getAccessTokenExpirySeconds(),
@@ -115,9 +127,44 @@ public class AuthController
             )
         );
 
+        // 6️⃣ Return response + BOTH rotated cookies
         return ResponseEntity.ok()
-            .header(HttpHeaders.SET_COOKIE, newCookie.toString())
+            .header(HttpHeaders.SET_COOKIE, newRefreshCookie.toString())
+            .header(HttpHeaders.SET_COOKIE, newCsrfCookie.toString())
             .body(response);
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @CookieValue(name = "refreshToken", required = false)
+            String refreshTokenValue
+    ) {
+    	
+    	System.out.println("LOGOUT refreshToken cookie = " + refreshTokenValue);
+    	
+        // 1️⃣ Delete refresh token from DB (if present)
+        if (refreshTokenValue != null) {
+            refreshTokenService.findByToken(refreshTokenValue)
+                    .ifPresent(refreshTokenService::delete);
+        }
+
+        // 2️⃣ Delete refresh token cookie
+        ResponseCookie deleteRefreshCookie =
+                cookieUtil.deleteRefreshTokenCookie();
+
+        // 3️⃣ Delete CSRF cookie
+        ResponseCookie deleteCsrfCookie =
+                ResponseCookie.from(CsrfTokenUtil.CSRF_COOKIE_NAME, "")
+                        .path("/")
+                        .maxAge(0)
+                        .build();
+
+        // 4️⃣ Return response with cookie deletions
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, deleteRefreshCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, deleteCsrfCookie.toString())
+                .build();
+    }
+
 
 }

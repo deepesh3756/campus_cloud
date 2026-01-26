@@ -22,7 +22,7 @@ public class CookieUtil {
     		    .httpOnly(true)
     		    .secure(false)             // ✅ HTTP local
     		    .sameSite("Lax")           // ✅ safest for local dev
-    		    .path("/api/users/refresh-token")
+    		    .path("/api/users")
     		    .maxAge(maxAgeMs / 1000)
     		    .build();
 
@@ -31,7 +31,7 @@ public class CookieUtil {
     public ResponseCookie deleteRefreshTokenCookie() {
         return ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
-                .path("/api/users/refresh-token")
+                .path("/api/users")
                 .maxAge(0)
                 .build();
     }

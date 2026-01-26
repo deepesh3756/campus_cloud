@@ -35,3 +35,49 @@ Server running at http://localhost:3000
 http://localhost:3000/test.html
 
 ✅ Ready for cookie testing
+
+========================================================
+
+Microsoft Windows [Version 10.0.19045.6216]
+(c) Microsoft Corporation. All rights reserved.
+
+D:\CDAC Project>curl -i -X POST http://localhost:8081/api/users/refresh-token ^
+More?   -H "X-XSRF-TOKEN: invalid_csrf_token" ^
+More?   -H "Cookie: refreshToken=3cc52136-ecc9-4185-b3d0-33da1991569f; XSRF-TOKEN=ad0f1b26-ebb0-4048-9543-84ad163b7467"
+HTTP/1.1 403
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Length: 0
+Date: Mon, 26 Jan 2026 10:21:20 GMT
+
+D:\CDAC Project>curl -i -X POST http://localhost:8081/api/users/refresh-token ^
+More?   -H "X-XSRF-TOKEN: 3212cefd-21cb-43e4-a63f-4fc85c97a3c4" ^
+More?   -H "Cookie: refreshToken=259b082f-e868-4722-a056-201889e53459; XSRF-TOKEN=3212cefd-21cb-43e4-a63f-4fc85c97a3c4"
+HTTP/1.1 200
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+Set-Cookie: refreshToken=1ecd65ef-46b0-43e3-ade7-7d9e3a1334df; Path=/api/users; Max-Age=604800; Expires=Mon, 02 Feb 2026 10:25:42 GMT; HttpOnly; SameSite=Lax
+Set-Cookie: XSRF-TOKEN=a039117e-214e-4c43-999b-c2e63c0e5800; Path=/; SameSite=Lax
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Mon, 26 Jan 2026 10:25:42 GMT
+
+{"accessToken":"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbl90ZXN0XzAxIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzY5NDIzMTQyLCJleHAiOjE3Njk0MjMyMDJ9.VLCkI6JLXB-jhWE4UPVxsQOU-ifKdmGJ-5AFuD6n8EQ","expiresIn":60,"tokenType":"Bearer","user":{"username":"admin_test_01","role":"ADMIN"}}
+D:\CDAC Project>
+
+
+
