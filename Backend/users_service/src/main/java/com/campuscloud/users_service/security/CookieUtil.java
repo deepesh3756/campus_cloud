@@ -18,15 +18,14 @@ public class CookieUtil {
     }
 
     public ResponseCookie createRefreshTokenCookie(String token, long maxAgeMs) {
-        return ResponseCookie.from("refreshToken", token)
-                .httpOnly(true)
-                //.secure(false) // TRUE in production
-                .secure(true) // CORS 
-                .sameSite("None") // CORS
-                .path("/api/users/refresh-token")
-                .maxAge(maxAgeMs / 1000)
-                .sameSite("Strict")
-                .build();
+    	return ResponseCookie.from("refreshToken", token)
+    		    .httpOnly(true)
+    		    .secure(false)             // ✅ HTTP local
+    		    .sameSite("Lax")           // ✅ safest for local dev
+    		    .path("/api/users/refresh-token")
+    		    .maxAge(maxAgeMs / 1000)
+    		    .build();
+
     }
 
     public ResponseCookie deleteRefreshTokenCookie() {
