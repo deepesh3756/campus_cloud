@@ -14,36 +14,47 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Index;
 import jakarta.persistence.ForeignKey;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 @Entity
 @Table(
-    name = "admins",
+    name = "students",
     indexes = {
+        @Index(name = "idx_students_user", columnList = "user_id"),
         @Index(name = "idx_email", columnList = "email"),
-        @Index(name = "idx_admins_user", columnList = "user_id")
+        @Index(name = "idx_prn", columnList = "prn")
     }
 )
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Admin {
+@Builder
+public class Student {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "admin_id")
-    private Long adminId;
+    @Column(name = "student_id")
+    private Long studentId;
 
+    /**
+     * Unidirectional relationship
+     * students.user_id -> users.user_id
+     */
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
         name = "user_id",
         nullable = false,
         unique = true,
-        foreignKey = @ForeignKey(name = "fk_admins_user")
+        foreignKey = @ForeignKey(name = "fk_students_user")
     )
     private User user;
+
+    @Column(name = "prn", nullable = false, unique = true, length = 50)
+    private String prn;
 
     @Column(name = "first_name", nullable = false, length = 100)
     private String firstName;
@@ -63,4 +74,13 @@ public class Admin {
 
     @Column(name = "profile_picture_url", length = 500)
     private String profilePictureUrl;
+
+    /*
+     * Future mapping (intentionally omitted for now)
+     *
+     * @ManyToOne(fetch = FetchType.LAZY)
+     * @JoinColumn(name = "batch_course_id",
+     *     foreignKey = @ForeignKey(name = "fk_students_batch_course"))
+     * private BatchCourse batchCourse;
+     */
 }

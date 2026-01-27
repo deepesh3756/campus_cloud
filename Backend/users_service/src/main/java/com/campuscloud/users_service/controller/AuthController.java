@@ -7,8 +7,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.campuscloud.users_service.dto.AdminRegisterRequestDto;
+import com.campuscloud.users_service.dto.FacultyRegisterRequestDto;
 import com.campuscloud.users_service.dto.LoginRequestDTO;
 import com.campuscloud.users_service.dto.LoginResponseDTO;
+import com.campuscloud.users_service.dto.StudentRegisterRequestDto;
 import com.campuscloud.users_service.entity.RefreshToken;
 import com.campuscloud.users_service.entity.User;
 import com.campuscloud.users_service.security.CookieUtil;
@@ -40,7 +42,28 @@ public class AuthController
     			.status(HttpStatus.CREATED)
     			.body("Admin registered successfully");
     }
+
+    @PostMapping("/register/faculty")
+    public ResponseEntity<String> registerFaculty(
+            @RequestBody FacultyRegisterRequestDto request
+    ) {
+        authService.registerFaculty(request);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body("Faculty registered successfully");
+    }
     
+    @PostMapping("/register/student")
+    public ResponseEntity<String> registerStudent(
+            @RequestBody StudentRegisterRequestDto request
+    ) {
+        authService.registerStudent(request);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body("Student registered successfully");
+    }
+
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDTO> login2(
             @RequestBody LoginRequestDTO request

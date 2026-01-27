@@ -7,8 +7,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.campuscloud.users_service.dto.AdminRegisterRequestDto;
+import com.campuscloud.users_service.dto.FacultyRegisterRequestDto;
 import com.campuscloud.users_service.dto.LoginRequestDTO;
 import com.campuscloud.users_service.dto.LoginResponseDTO;
+import com.campuscloud.users_service.dto.StudentRegisterRequestDto;
 import com.campuscloud.users_service.entity.Admin;
 import com.campuscloud.users_service.entity.Gender;
 import com.campuscloud.users_service.entity.RefreshToken;
@@ -17,11 +19,15 @@ import com.campuscloud.users_service.entity.Status;
 import com.campuscloud.users_service.entity.User;
 import com.campuscloud.users_service.entity.UserPrincipal;
 import com.campuscloud.users_service.repository.AdminRepository;
+import com.campuscloud.users_service.repository.FacultyRepository;
 import com.campuscloud.users_service.repository.UserRepository;
 import com.campuscloud.users_service.security.JwtUtil;
+import com.campuscloud.users_service.service.AdminProfileService;
 import com.campuscloud.users_service.service.AuthLoginResult;
 import com.campuscloud.users_service.service.AuthService;
+import com.campuscloud.users_service.service.FacultyProfileService;
 import com.campuscloud.users_service.service.RefreshTokenService;
+import com.campuscloud.users_service.service.StudentProfileService;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +43,57 @@ public class AuthServiceImpl implements AuthService
 	private final RefreshTokenService refreshTokenService;
 	
 	private final UserRepository userRepository;
-	private final AdminRepository adminRepository;
+	private final AdminProfileService adminProfileService;
+	private final FacultyProfileService facultyProfileService;
+	private final StudentProfileService studentProfileService;
+
+    public void registerAdmin(AdminRegisterRequestDto dto) 
+    {
+        // Create Account
+        User user = createUser(
+    		dto.getUsername(), 
+    		dto.getPassword(), 
+    		Role.ADMIN
+		); 
+
+        // Save Account (account_id generated here)
+        User savedUser = userRepository.save(user);
+        
+        // Create Admin profile
+        adminProfileService.createAdminProfile(savedUser, dto);
+    }
+    
+    public void registerFaculty(FacultyRegisterRequestDto dto) {
+
+        // 1️⃣ Create Account (role decided server-side)
+        User user = createUser(
+            dto.getUsername(),
+            dto.getPassword(),
+            Role.FACULTY
+        );
+
+        // 2️⃣ Save Account (user_id generated here)
+        User savedUser = userRepository.save(user);
+
+        // 3️⃣ Create Faculty profile
+        facultyProfileService.createFacultyProfile(savedUser, dto);
+    }
+    
+    public void registerStudent(StudentRegisterRequestDto dto) {
+
+        // 1️⃣ Create Account
+        User user = createUser(
+            dto.getUsername(),
+            dto.getPassword(),
+            Role.STUDENT
+        );
+
+        // 2️⃣ Save Account (user_id generated here)
+        User savedUser = userRepository.save(user);
+
+        // 3️⃣ Create Student profile
+        studentProfileService.createStudentProfile(savedUser, dto);
+    }
     
     @Override
     public AuthLoginResult login(LoginRequestDTO request) {
@@ -70,36 +126,29 @@ public class AuthServiceImpl implements AuthService
 
     }
 
-    public void registerAdmin(AdminRegisterRequestDto dto) {
+    public User createUser(
+            String username,
+            String rawPassword,
+            Role role
+    ) {
 
         // 1️⃣ Check if username already exists
-        if (userRepository.findByUsername(dto.getUsername()).isPresent()) {
+        if (userRepository.findByUsername(username).isPresent()) {
             throw new RuntimeException("Username already exists");
         }
-        
-        String hashedPassword = passwordEncoder.encode(dto.getPassword());
 
-        // 2️⃣ Create Account
+        // 2️⃣ Hash password
+        String hashedPassword = passwordEncoder.encode(rawPassword);
+
+        // 3️⃣ Create Account
         User user = new User();
-        user.setUsername(dto.getUsername());
-        user.setPasswordHash(hashedPassword); 
-        user.setRole(Role.ADMIN);
+        user.setUsername(username);
+        user.setPasswordHash(hashedPassword);
+        user.setRole(role);
         user.setStatus(Status.ACTIVE);
 
-        // 3️⃣ Save Account (account_id generated here)
-        User savedUser = userRepository.save(user);
-
-        // 4️⃣ Create Admin profile
-        Admin admin = new Admin();
-        admin.setUser(savedUser);
-        admin.setFirstName(dto.getFirstName());
-        admin.setLastName(dto.getLastName());
-        admin.setEmail(dto.getEmail());
-        admin.setMobile(dto.getMobile());
-        admin.setGender(Gender.valueOf(dto.getGender()));
-
-        // 5️⃣ Save Admin
-        adminRepository.save(admin);
+        // 4️⃣ Save Account
+        return userRepository.save(user);
     }
       
     private String resolveFullName(User user) {
@@ -110,23 +159,12 @@ public class AuthServiceImpl implements AuthService
 
         return switch (user.getRole()) {
 
-            case ADMIN -> adminRepository
-                    .findByUser(user)
-                    .map(a -> a.getFirstName() + " " + a.getLastName())
-                    .orElse(null);
-
-            /*
-            case STUDENT -> studentRepository
-                    .findByUser(user)
-                    .map(s -> s.getFirstName() + " " + s.getLastName())
-                    .orElse(null);
-
-            case FACULTY -> facultyRepository
-                    .findByUser(user)
-                    .map(f -> f.getFirstName() + " " + f.getLastName())
-                    .orElse(null);
-			*/
+            case ADMIN -> adminProfileService.getFullName(user);
             
+            case FACULTY -> facultyProfileService.getFullName(user);
+            
+            //case STUDENT -> 
+
             default -> null; // ✅ REQUIRED fallback
         };
     }
@@ -140,6 +178,6 @@ public class AuthServiceImpl implements AuthService
             fullName
         );
     }
-
+ 
 }
 
