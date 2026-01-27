@@ -58,12 +58,16 @@ public class AuthServiceImpl implements AuthService
         RefreshToken refreshToken =
             refreshTokenService.createRefreshToken(user);
 
+        LoginResponseDTO.UserInfo userInfo =
+                buildUserInfo(user); // 👈 single source of truth
+
         return new AuthLoginResult(
-                user,
-                accessToken,
-                refreshToken.getToken(),
-                jwtUtil.getAccessTokenExpirySeconds()
+            accessToken,
+            jwtUtil.getAccessTokenExpirySeconds(),
+            refreshToken.getToken(),
+            userInfo
         );
+
     }
 
     public void registerAdmin(AdminRegisterRequestDto dto) {
@@ -97,5 +101,45 @@ public class AuthServiceImpl implements AuthService
         // 5️⃣ Save Admin
         adminRepository.save(admin);
     }
+      
+    private String resolveFullName(User user) {
+
+        if (user == null || user.getRole() == null) {
+            return null;
+        }
+
+        return switch (user.getRole()) {
+
+            case ADMIN -> adminRepository
+                    .findByUser(user)
+                    .map(a -> a.getFirstName() + " " + a.getLastName())
+                    .orElse(null);
+
+            /*
+            case STUDENT -> studentRepository
+                    .findByUser(user)
+                    .map(s -> s.getFirstName() + " " + s.getLastName())
+                    .orElse(null);
+
+            case FACULTY -> facultyRepository
+                    .findByUser(user)
+                    .map(f -> f.getFirstName() + " " + f.getLastName())
+                    .orElse(null);
+			*/
+            
+            default -> null; // ✅ REQUIRED fallback
+        };
+    }
+    
+    public LoginResponseDTO.UserInfo buildUserInfo(User user) {
+        String fullName = resolveFullName(user);
+
+        return new LoginResponseDTO.UserInfo(
+            user.getUsername(),
+            user.getRole().name(),
+            fullName
+        );
+    }
+
 }
 

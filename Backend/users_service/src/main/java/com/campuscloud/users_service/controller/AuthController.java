@@ -61,14 +61,11 @@ public class AuthController
         
         // 3️⃣ Build final API response
         LoginResponseDTO response = new LoginResponseDTO(
-            result.getAccessToken(),
-            result.getExpiresIn(),
-            "Bearer",
-            new LoginResponseDTO.UserInfo(
-                result.getUser().getUsername(),
-                result.getUser().getRole().name()
-            )
-        );
+    	    result.getAccessToken(),
+    	    result.getExpiresIn(),
+    	    "Bearer",
+    	    result.getUserInfo()
+    	);
 
         // 4️⃣ Return response + cookie
         return ResponseEntity.ok()
@@ -115,16 +112,13 @@ public class AuthController
                 newRefreshToken.getToken(),
                 cookieUtil.getRefreshTokenMaxAgeMs()
             );
-
+        
         // 5️⃣ Build response DTO
         LoginResponseDTO response = new LoginResponseDTO(
             newAccessToken,
             jwtUtil.getAccessTokenExpirySeconds(),
             "Bearer",
-            new LoginResponseDTO.UserInfo(
-                user.getUsername(),
-                user.getRole().name()
-            )
+            authService.buildUserInfo(user)
         );
 
         // 6️⃣ Return response + BOTH rotated cookies
