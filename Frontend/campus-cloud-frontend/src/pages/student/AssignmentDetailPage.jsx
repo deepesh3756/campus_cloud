@@ -1,15 +1,27 @@
 import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 
 import AssignmentHeroSection from "../../components/student/AssignmentHeroSection";
 import AssignmentAttachmentsSection from "../../components/student/AssignmentAttachmentsSection";
 import AssignmentSubmissionSection from "../../components/student/AssignmentSubmissionSection";
 import PdfViewer from "../../components/common/PdfViewer";
+import StudentBreadcrumb from "../../components/common/StudentBreadcrumb";
 
 import sampleAssignmentPdf from "../../assets/sample-assignment.pdf";
 
+const SUBJECT_LABELS = {
+  cpp: "C++",
+  dbms: "Database Technologies",
+  java: "OOP with Java",
+  dsa: "Algorithms & Data Structures",
+  web: "Web Programming Technologies",
+  dotnet: "Microsoft .NET Technologies",
+};
+
 const AssignmentDetailPage = () => {
   const { id } = useParams();
+  const location = useLocation();
+  const subjectKey = location?.state?.subjectKey;
   const [submitted, setSubmitted] = useState(false);
 
   const assignment = useMemo(
@@ -56,6 +68,19 @@ const AssignmentDetailPage = () => {
 
   return (
     <div className="assignment-detail-page container-fluid">
+      {subjectKey ? (
+        <StudentBreadcrumb
+          items={[
+            {
+              label: SUBJECT_LABELS[subjectKey] ?? subjectKey,
+              to: `/student/subjects?subject=${encodeURIComponent(subjectKey)}`,
+            },
+            {
+              label: assignment.title,
+            },
+          ]}
+        />
+      ) : null}
       <AssignmentHeroSection
         title={assignment.title}
         description={assignment.description}

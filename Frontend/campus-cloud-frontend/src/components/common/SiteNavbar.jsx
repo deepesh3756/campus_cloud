@@ -5,7 +5,7 @@ import NotificationDropdown from "../student/NotificationDropdown";
 
 import "./SiteNavbar.css";
 
-const SiteNavbar = ({ onLoginClick }) => {
+const SiteNavbar = ({ onLoginClick, links, brandSuffix }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -80,7 +80,14 @@ const SiteNavbar = ({ onLoginClick }) => {
           >
             ☁
           </span>
-          CampusCloud
+          <span className="d-flex align-items-center gap-2">
+            <span>CampusCloud</span>
+            {brandSuffix ? (
+              <span className="badge text-bg-light border fw-semibold">
+                {brandSuffix}
+              </span>
+            ) : null}
+          </span>
         </Link>
 
         <button
@@ -95,56 +102,68 @@ const SiteNavbar = ({ onLoginClick }) => {
         <div className="collapse navbar-collapse" id="siteNavbar">
           {/* CENTER LINKS */}
           <ul className="navbar-nav mx-auto gap-lg-4 mb-2 mb-lg-0">
-            <li className="nav-item">
-              <NavLink className="nav-link fw-medium" to={user ? `/${user.role}` : "/"}>
-                Home
-              </NavLink>
-            </li>
-
-            {user?.role === "student" && (
+            {links?.length ? (
+              links.map((link) => (
+                <li className="nav-item" key={link.to}>
+                  <NavLink className="nav-link fw-medium" to={link.to}>
+                    {link.label}
+                  </NavLink>
+                </li>
+              ))
+            ) : (
               <>
                 <li className="nav-item">
-                  <NavLink className="nav-link fw-medium" to="/student/assignments">
-                    Assignments
+                  <NavLink className="nav-link fw-medium" to={user ? `/${user.role}` : "/"}>
+                    Home
+                  </NavLink>
+                </li>
+
+                {user?.role === "student" && (
+                  <>
+                    <li className="nav-item">
+                      <NavLink className="nav-link fw-medium" to="/student/subjects">
+                        Assignments
+                      </NavLink>
+                    </li>
+
+                    <li className="nav-item">
+                      <NavLink className="nav-link fw-medium" to="/student/dashboard">
+                        Dashboard
+                      </NavLink>
+                    </li>
+                  </>
+                )}
+
+                {user?.role === "faculty" && (
+                  <>
+                    <li className="nav-item">
+                      <NavLink className="nav-link fw-medium" to="/faculty/dashboard">
+                        Dashboard
+                      </NavLink>
+                    </li>
+                  </>
+                )}
+
+                <li className="nav-item">
+                  <NavLink className="nav-link fw-medium" to="/about">
+                    About Us
                   </NavLink>
                 </li>
 
                 <li className="nav-item">
-                  <NavLink className="nav-link fw-medium" to="/student/dashboard">
-                    Dashboard
+                  <NavLink className="nav-link fw-medium" to="/contact">
+                    Contact
                   </NavLink>
                 </li>
+
+                {!user && (
+                  <li className="nav-item">
+                    <a className="nav-link fw-medium" href="#services">
+                      Our Services
+                    </a>
+                  </li>
+                )}
               </>
-            )}
-
-            {user?.role === "faculty" && (
-              <>
-                <li className="nav-item">
-                  <NavLink className="nav-link fw-medium" to="/faculty/dashboard">
-                    Dashboard
-                  </NavLink>
-                </li>
-              </>
-            )}
-
-            <li className="nav-item">
-              <NavLink className="nav-link fw-medium" to="/about">
-                About Us
-              </NavLink>
-            </li>
-
-            <li className="nav-item">
-              <NavLink className="nav-link fw-medium" to="/contact">
-                Contact
-              </NavLink>
-            </li>
-
-            {!user && (
-              <li className="nav-item">
-                <a className="nav-link fw-medium" href="#services">
-                  Our Services
-                </a>
-              </li>
             )}
           </ul>
 

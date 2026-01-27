@@ -19,12 +19,12 @@ const AboutPage = () => {
       <div className="text-center mb-5">
         <div
           className="d-inline-flex align-items-center justify-content-center rounded-4 bg-primary text-white mb-4"
-          style={{ width: 80, height: 80, fontSize: "50px" }}
+          style={{ width:50, height: 50, fontSize: "35px" }}
         >
           ☁
         </div>
 
-        <h1 className="fw-bold">About Campus Cloud</h1>
+        <h1 className="fw-bold fs-2">About Campus Cloud</h1>
 
         <p className="text-muted fs-5 mt-3">
           A comprehensive learning management system designed for DAC students and

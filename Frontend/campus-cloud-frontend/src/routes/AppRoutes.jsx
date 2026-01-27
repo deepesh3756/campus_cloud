@@ -12,6 +12,7 @@ import StudentHomePage from '../pages/student/HomePage';
 import StudentDashboardPage from '../pages/student/DashboardPage';
 import StudentAssignmentsPage from '../pages/student/AssignmentsPage';
 import AssignmentDetailPage from '../pages/student/AssignmentDetailPage';
+import StudentSubjectsPage from "../pages/student/SubjectsPage";
 import ProfilePage from "../pages/student/ProfilePage";
 
 
@@ -30,10 +31,20 @@ import FacultyProfilePage from '../pages/faculty/ProfilePage';
 import AdminLayout from '../layouts/AdminLayout';
 import AdminDashboardPage from '../pages/admin/DashboardPage';
 import BatchesPage from '../pages/admin/BatchesPage';
+import BatchDetailsPage from '../pages/admin/BatchDetailsPage';
+import AddBatchPage from '../pages/admin/AddBatchPage';
 import CoursesPage from '../pages/admin/CoursesPage';
+import CourseDetailsPage from "../pages/admin/CourseDetailsPage";
+import AddCoursePage from "../pages/admin/AddCoursePage";
 import AdminSubjectsPage from '../pages/admin/SubjectsPage';
+import SubjectDetailsPage from "../pages/admin/SubjectDetailsPage";
+import AddSubjectPage from "../pages/admin/AddSubjectPage";
 import StudentsPage from '../pages/admin/StudentsPage';
+import StudentDetailsPage from "../pages/admin/StudentDetailsPage";
+import AddStudentPage from "../pages/admin/AddStudentPage";
 import FacultyPage from '../pages/admin/FacultyPage';
+import FacultyDetailsPage from "../pages/admin/FacultyDetailsPage";
+import AddFacultyPage from "../pages/admin/AddFacultyPage";
 import AdminProfilePage from '../pages/admin/ProfilePage';
 import LandingPage from '../pages/LandingPage';
 
@@ -63,9 +74,10 @@ const AppRoutes = () => {
         element={<StudentLayout />}
       >
         <Route index element={<StudentHomePage />} />
+        <Route path="subjects" element={<StudentSubjectsPage />} />
         <Route path="subjects/:subjectKey" element={<StudentAssignmentsPage />} />
         <Route path="dashboard" element={<StudentDashboardPage />} />
-        <Route path="assignments" element={<StudentAssignmentsPage />} />
+        <Route path="assignments" element={<StudentSubjectsPage />} />
         <Route path="assignments/:id" element={<AssignmentDetailPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
@@ -106,10 +118,25 @@ const AppRoutes = () => {
         <Route index element={<AdminDashboardPage />} />
         <Route path="dashboard" element={<AdminDashboardPage />} />
         <Route path="batches" element={<BatchesPage />} />
+        <Route path="batches/new" element={<AddBatchPage />} />
+        <Route path="batches/:batchId/edit" element={<AddBatchPage />} />
+        <Route path="batches/:batchId" element={<BatchDetailsPage />} />
         <Route path="courses" element={<CoursesPage />} />
+        <Route path="courses/new" element={<AddCoursePage />} />
+        <Route path="courses/:courseId/edit" element={<AddCoursePage />} />
+        <Route path="courses/:courseId" element={<CourseDetailsPage />} />
         <Route path="subjects" element={<AdminSubjectsPage />} />
+        <Route path="subjects/new" element={<AddSubjectPage />} />
+        <Route path="subjects/:subjectId/edit" element={<AddSubjectPage />} />
+        <Route path="subjects/:subjectId" element={<SubjectDetailsPage />} />
         <Route path="students" element={<StudentsPage />} />
+        <Route path="students/new" element={<AddStudentPage />} />
+        <Route path="students/:studentId/edit" element={<AddStudentPage />} />
+        <Route path="students/:studentId" element={<StudentDetailsPage />} />
         <Route path="faculty" element={<FacultyPage />} />
+        <Route path="faculty/new" element={<AddFacultyPage />} />
+        <Route path="faculty/:facultyId/edit" element={<AddFacultyPage />} />
+        <Route path="faculty/:facultyId" element={<FacultyDetailsPage />} />
         <Route path="profile" element={<AdminProfilePage />} />
       </Route>
 

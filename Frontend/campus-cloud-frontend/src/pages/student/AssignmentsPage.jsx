@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import UploadModal from "../../components/common/UploadModal";
+import StudentBreadcrumb from "../../components/common/StudentBreadcrumb";
 
 const SUBJECT_LABELS = {
   cpp: "C++",
@@ -20,55 +21,54 @@ const AssignmentsPage = () => {
     return `${SUBJECT_LABELS[subjectKey] ?? subjectKey} Assignments`;
   }, [subjectKey]);
 
-  const [assignments, setAssignments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading] = useState(false);
 
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [activeAssignment, setActiveAssignment] = useState(null);
 
-  useEffect(() => {
-    // TODO: replace with API call filtered by subjectKey
-    setAssignments([
-      {
-        id: "1",
-        name: "C++ Basics: Variables & Data Types",
-        createdDate: "2024-03-01",
-        dueDate: "2024-03-10",
-        status: "Submitted",
-        grade: "",
-        remarks: "NA",
-      },
-      {
-        id: "2",
-        name: "Control Structures Practice",
-        createdDate: "2024-03-05",
-        dueDate: "2024-03-14",
-        status: "Pending",
-        grade: "",
-        remarks: "NA",
-      },
-      {
-        id: "3",
-        name: "Functions & Recursion",
-        createdDate: "2024-03-10",
-        dueDate: "2024-03-20",
-        status: "Evaluated",
-        grade: "9/10",
-        remarks: "Good work",
-      },
-      {
-        id: "4",
-        name: "Object-Oriented Concepts in C++",
-        createdDate: "2024-03-15",
-        dueDate: "2024-03-25",
-        status: "Pending",
-        grade: "",
-        remarks: "NA",
-      },
-    ]);
-
-    setLoading(false);
-  }, [subjectKey]);
+  const assignments = useMemo(
+    () =>
+      // TODO: replace with API call filtered by subjectKey
+      [
+        {
+          id: "1",
+          name: "C++ Basics: Variables & Data Types",
+          createdDate: "2024-03-01",
+          dueDate: "2024-03-10",
+          status: "Submitted",
+          grade: "",
+          remarks: "NA",
+        },
+        {
+          id: "2",
+          name: "Control Structures Practice",
+          createdDate: "2024-03-05",
+          dueDate: "2024-03-14",
+          status: "Pending",
+          grade: "",
+          remarks: "NA",
+        },
+        {
+          id: "3",
+          name: "Functions & Recursion",
+          createdDate: "2024-03-10",
+          dueDate: "2024-03-20",
+          status: "Evaluated",
+          grade: "9/10",
+          remarks: "Good work",
+        },
+        {
+          id: "4",
+          name: "Object-Oriented Concepts in C++",
+          createdDate: "2024-03-15",
+          dueDate: "2024-03-25",
+          status: "Pending",
+          grade: "",
+          remarks: "NA",
+        },
+      ],
+    []
+  );
 
   const openUpload = (assignment) => {
     setActiveAssignment(assignment);
@@ -90,7 +90,7 @@ const AssignmentsPage = () => {
   };
 
   const handleRowOpen = (assignmentId) => {
-    navigate(`/student/assignments/${assignmentId}`);
+    navigate(`/student/assignments/${assignmentId}`, { state: { subjectKey } });
   };
 
   if (loading) return <div className="py-4">Loading...</div>;
@@ -98,6 +98,16 @@ const AssignmentsPage = () => {
   return (
     <div className="assignments-hero container-fluid">
       <div className="mb-3">
+        {subjectKey ? (
+          <StudentBreadcrumb
+            items={[
+              {
+                label: SUBJECT_LABELS[subjectKey] ?? subjectKey,
+                to: `/student/subjects?subject=${encodeURIComponent(subjectKey)}`,
+              },
+            ]}
+          />
+        ) : null}
         <h2 className="fw-semibold">{subjectTitle}</h2>
       </div>
 

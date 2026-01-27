@@ -12,7 +12,7 @@ const MOCK_USER = {
   id: 1,
   name: "Mohit",
   email: "mohit@campuscloud.com",
-  role: "student" // 👈 CHANGE THIS TO TEST DIFFERENT ROLES
+  role: "admin" // 👈 CHANGE THIS TO TEST DIFFERENT ROLES
 };
 const MOCK_TOKEN = "mock-token-temporary-for-testing";
 // ========================================"

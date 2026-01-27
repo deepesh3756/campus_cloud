@@ -1,10 +1,15 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
   House,
   Book,
   FileText,
   GraduationCap,
+  Layers,
+  BookOpen,
+  Users,
+  User,
+  ClipboardList,
   ChevronDown,
   ChevronRight,
   PanelLeft,
@@ -23,13 +28,9 @@ const STUDENT_MENU_ITEMS = [
     path: "/student/dashboard",
   },
   {
-    label: "Overview",
-    icon: FileText,
-    path: "/student/overview",
-  },
-  {
     label: "Subject List",
     icon: Book,
+    path: "/student/subjects",
     children: [
       { label: "C++", path: "/student/subjects/cpp" },
       { label: "Database Technologies", path: "/student/subjects/dbms" },
@@ -43,65 +44,81 @@ const STUDENT_MENU_ITEMS = [
 
 const SidebarItem = ({ item, collapsed, onCourseSelect }) => {
   const [open, setOpen] = useState(false);
-  const Icon = item.icon;
+  const location = useLocation();
   const navigate = useNavigate();
+  const Icon = item.icon;
 
   /* =======================
      DROPDOWN ITEM
   ======================= */
   if (item.children) {
-    const handleDropdownToggle = () => {
-      // If clicking on the chevron or icon area
-      setOpen(!open);
+    const isActive =
+      !!item.path &&
+      (location.pathname === item.path ||
+        location.pathname.startsWith(`${item.path}/`) ||
+        location.pathname.startsWith("/student/assignments"));
+
+    const handleRowClick = () => {
+      if (collapsed) {
+        navigate(item.path);
+        return;
+      }
+
+      setOpen((prev) => !prev);
     };
 
-    const handleLabelClick = () => {
-      // If clicking on the label text, navigate to the path
-      if (item.path) {
-        navigate(item.path, item.state ? { state: item.state } : undefined);
-      }
+    const handleLabelClick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      navigate(item.path);
+    };
+
+    const handleChevronClick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen((prev) => !prev);
     };
 
     return (
       <li className="sidebar-dropdown">
         <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "10px 14px",
-            borderRadius: "10px",
-            color: "#374151",
-            fontWeight: 500,
-            transition: "0.2s",
+          className={`sidebar-link sidebar-dropdown-toggle ${isActive ? "active" : ""}`}
+          onClick={handleRowClick}
+          role="button"
+          tabIndex={0}
+          title={collapsed ? item.label : undefined}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleRowClick();
+            }
           }}
+          style={{ justifyContent: "space-between" }}
         >
-          <button
-            type="button"
-            className="sidebar-link sidebar-dropdown-toggle"
-            onClick={handleLabelClick}
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "flex-start",
-              padding: "0",
-              border: "none",
-              background: "none",
-              cursor: "pointer",
-              gap: "14px",
-            }}
-          >
-            <div className="sidebar-link-content">
-              {Icon ? <Icon size={20} /> : null}
-              {!collapsed && <span>{item.label}</span>}
-            </div>
-          </button>
+          <div className="sidebar-link-content">
+            {Icon ? <Icon size={20} /> : null}
+            {!collapsed ? (
+              <button
+                type="button"
+                onClick={handleLabelClick}
+                style={{
+                  color: "inherit",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  font: "inherit",
+                  cursor: "pointer",
+                }}
+              >
+                {item.label}
+              </button>
+            ) : null}
+          </div>
 
-          {!collapsed && (
+          {!collapsed ? (
             <button
               type="button"
-              onClick={handleDropdownToggle}
+              onClick={handleChevronClick}
               style={{
                 background: "none",
                 border: "none",
@@ -111,14 +128,11 @@ const SidebarItem = ({ item, collapsed, onCourseSelect }) => {
                 alignItems: "center",
                 color: "#d1d5db",
               }}
+              aria-label={open ? "Collapse" : "Expand"}
             >
-              {open ? (
-                <ChevronDown size={16} />
-              ) : (
-                <ChevronRight size={16} />
-              )}
+              {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </button>
-          )}
+          ) : null}
         </div>
 
         {!collapsed && open && (
@@ -169,7 +183,12 @@ const SidebarItem = ({ item, collapsed, onCourseSelect }) => {
   ======================= */
   return (
     <li>
-      <NavLink to={item.path} state={item.state} className="sidebar-link">
+      <NavLink
+        to={item.path}
+        state={item.state}
+        className="sidebar-link"
+        title={collapsed ? item.label : undefined}
+      >
         <div className="sidebar-link-content">
           {Icon ? <Icon size={20} /> : null}
           {!collapsed && <span>{item.label}</span>}
@@ -179,7 +198,7 @@ const SidebarItem = ({ item, collapsed, onCourseSelect }) => {
   );
 };
 
-const Sidebar = () => {
+const Sidebar = ({ menuItems: menuItemsProp }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { getCourses } = useFacultyData();
@@ -229,7 +248,51 @@ const Sidebar = () => {
     navigate("/faculty/subjects", { state: { courseId } });
   };
 
-  const menuItems = user?.role === "faculty" ? getFacultyMenuItems() : STUDENT_MENU_ITEMS;
+  const adminMenuItems = [
+    {
+      label: "Dashboard",
+      icon: House,
+      path: "/admin/dashboard",
+    },
+    {
+      label: "Batches",
+      icon: Layers,
+      path: "/admin/batches",
+    },
+    {
+      label: "Courses",
+      icon: GraduationCap,
+      path: "/admin/courses",
+    },
+    {
+      label: "Subjects",
+      icon: BookOpen,
+      path: "/admin/subjects",
+    },
+    {
+      label: "Students",
+      icon: Users,
+      path: "/admin/students",
+    },
+    {
+      label: "Faculty",
+      icon: User,
+      path: "/admin/faculty",
+    },
+    {
+      label: "Assignments",
+      icon: ClipboardList,
+      path: "/faculty",
+    },
+  ];
+
+  const menuItems =
+    menuItemsProp ||
+    (user?.role === "admin"
+      ? adminMenuItems
+      : user?.role === "faculty"
+        ? getFacultyMenuItems()
+        : STUDENT_MENU_ITEMS);
 
   return (
     <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
@@ -242,6 +305,7 @@ const Sidebar = () => {
 
         <button
           className="sidebar-collapse-btn"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           onClick={() => setCollapsed((prev) => !prev)}
         >
           {collapsed ? (

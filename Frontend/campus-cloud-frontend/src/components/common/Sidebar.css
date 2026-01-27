@@ -115,6 +115,11 @@
   background: #f3f4f6;
 }
 
+.sidebar-dropdown-toggle.active {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
 /* =====================
    SUBMENU
 ===================== */
