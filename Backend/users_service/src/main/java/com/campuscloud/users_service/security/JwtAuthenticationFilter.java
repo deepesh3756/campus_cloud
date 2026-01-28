@@ -38,6 +38,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
+        
+        if (!jwtUtil.isTokenValid(token)) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT");
+            return;
+        }
 
         if (jwtUtil.isTokenValid(token)) {
 
