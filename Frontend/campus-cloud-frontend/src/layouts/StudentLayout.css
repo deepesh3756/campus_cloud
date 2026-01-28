@@ -1,0 +1,21 @@
+.student-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.layout-container {
+  display: flex;
+  flex: 1;
+}
+
+.main-content {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+/* Ensure Footer stays at bottom */
+.student-layout > :last-child {
+  margin-top: auto;
+}

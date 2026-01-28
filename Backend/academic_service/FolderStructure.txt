@@ -1,0 +1,23 @@
+academic-service/
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/
+│   │   │       └── campuscloud/
+│   │   │           └── academicservice/
+│   │   │               ├── AcademicServiceApplication.java
+│   │   │               ├── controller/
+│   │   │               ├── service/
+│   │   │               ├── repository/
+│   │   │               ├── entity/
+│   │   │               ├── dto/
+│   │   │               │   ├── request/
+│   │   │               │   └── response/
+│   │   │               ├── enums/
+│   │   │               ├── exception/
+│   │   │               └── config/
+│   │   └── resources/
+│   │       └── application.properties
+│   └── test/
+├── pom.xml
+└── README.md
