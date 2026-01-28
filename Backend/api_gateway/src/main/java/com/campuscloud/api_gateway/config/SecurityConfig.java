@@ -2,6 +2,7 @@ package com.campuscloud.api_gateway.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
@@ -15,6 +16,8 @@ public class SecurityConfig {
             .csrf(ServerHttpSecurity.CsrfSpec::disable) // CSRF wired later
 
             .authorizeExchange(exchanges -> exchanges
+                .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                 // Public auth endpoints
                 .pathMatchers(
                     "/api/users/login",
