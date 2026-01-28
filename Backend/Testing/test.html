@@ -12,7 +12,7 @@
 
   <script>
     async function login() {
-      const res = await fetch("http://localhost:8081/api/users/login", {
+      const res = await fetch("http://localhost:8080/api/users/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -20,7 +20,7 @@
         credentials: "include",
         body: JSON.stringify({
           username: "admin_test_01",
-          password: "Admin@123"
+          password: "Admin@1"
         })
       });
 
@@ -45,7 +45,7 @@
         return;
       }
 
-      const res = await fetch("http://localhost:8081/api/users/refresh-token", {
+      const res = await fetch("http://localhost:8080/api/users/refresh-token", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -65,7 +65,7 @@
   async function logout() {
     const csrfToken = getCookie("XSRF-TOKEN");
 
-    const res = await fetch("http://localhost:8081/api/users/logout", {
+    const res = await fetch("http://localhost:8080/api/users/logout", {
       method: "POST",
       credentials: "include",
       headers: {
