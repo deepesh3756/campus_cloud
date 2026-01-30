@@ -4,18 +4,13 @@ import { tokenService } from '../services/storage/tokenService';
 
 const AuthContext = createContext(null);
 
-// ========================================
-// TEMP MOCK AUTH - FOR FRONTEND TESTING ONLY
-// ========================================
-// Change role to: "student" | "faculty" | "admin"
-const MOCK_USER = {
-  id: 1,
-  name: "Mohit",
-  email: "mohit@campuscloud.com",
-  role: "admin" // 👈 CHANGE THIS TO TEST DIFFERENT ROLES
+const normalizeUser = (u) => {
+  if (!u) return u;
+  return {
+    ...u,
+    role: typeof u.role === 'string' ? u.role.toLowerCase() : u.role,
+  };
 };
-const MOCK_TOKEN = "mock-token-temporary-for-testing";
-// ========================================"
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -25,17 +20,14 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       const token = tokenService.getToken();
       if (token) {
-        // TEMP MOCK AUTH: Check for mock token
-        if (token === MOCK_TOKEN) {
-          setUser(MOCK_USER);
-        } else {
-          // ⬇️ ORIGINAL BACKEND CODE (commented out for testing)
-          // try {
-          //   const userData = await authService.getCurrentUser();
-          //   setUser(userData);
-          // } catch (error) {
-          //   tokenService.removeToken();
-          // }
+        try {
+          const userData = await authService.getCurrentUser();
+          if (userData) {
+            setUser(userData);
+          }
+        } catch {
+          tokenService.removeToken();
+          localStorage.removeItem('auth_user');
         }
       }
       setLoading(false);
@@ -44,20 +36,13 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async () => {
-    // TEMP MOCK AUTH: Simulate login without backend
-    tokenService.setToken(MOCK_TOKEN);
-    setUser(MOCK_USER);
-    return {
-      token: MOCK_TOKEN,
-      user: MOCK_USER
-    };
-    
-    // ⬇️ ORIGINAL BACKEND CODE (commented out for testing)
-    // const response = await authService.login(credentials);
-    // tokenService.setToken(response.token);
-    // setUser(response.user);
-    // return response;
+  const login = async (credentials) => {
+    const response = await authService.login(credentials);
+    tokenService.setToken(response.accessToken);
+    const normalizedUser = normalizeUser(response.user);
+    setUser(normalizedUser);
+    localStorage.setItem('auth_user', JSON.stringify(normalizedUser));
+    return response;
   };
 
   const register = async (userData) => {
@@ -72,6 +57,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout error:', error);
     } finally {
       tokenService.removeToken();
+      localStorage.removeItem('auth_user');
       setUser(null);
     }
   };

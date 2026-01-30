@@ -37,7 +37,7 @@ public class UserController {
     private final UserProfileService userProfileService;
     private final UserRepository userRepository;
     
-    @PreAuthorize("hasRole('ADMIN')")
+//    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/register/admin")
     public ResponseEntity<ApiResponse<Void>> registerAdmin(
     		@RequestBody AdminRegisterRequestDto request) 

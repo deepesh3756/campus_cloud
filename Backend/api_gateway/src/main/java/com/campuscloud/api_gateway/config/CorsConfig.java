@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
@@ -12,28 +14,18 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 public class CorsConfig {
 
     @Bean
+    @Order(Ordered.HIGHEST_PRECEDENCE)
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOriginPatterns(List.of(
             "http://localhost:5173",
-            "http://localhost:3000"
+            "http://127.0.0.1:*"
         ));
 
-        config.setAllowedMethods(List.of(
-            "GET",
-            "POST",
-            "PUT",
-            "PATCH",
-            "DELETE",
-            "OPTIONS"
-        ));
+        config.setAllowedMethods(List.of("*"));
 
-        config.setAllowedHeaders(List.of(
-            "Authorization",
-            "Content-Type",
-            "X-XSRF-TOKEN"
-        ));
+        config.setAllowedHeaders(List.of("*"));
 
         config.setExposedHeaders(List.of(
             "Set-Cookie"

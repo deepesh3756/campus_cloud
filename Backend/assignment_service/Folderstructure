@@ -1,0 +1,67 @@
+assignment-service/
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/
+│   │   │       └── cdac/
+│   │   │           └── assignmentservice/
+│   │   │               ├── AssignmentServiceApplication.java
+│   │   │            
+   ├── config/
+│   │   │               │   ├── CloudinaryConfig.java
+│   │   │               │   ├── SecurityConfig.java
+│   │   │               │   ├── FeignClientConfig.java
+│   │   │               │   └── CorsConfig.java
+│   │   │               ├── entity/
+│   │   │               │   ├── Assignment.java
+│   │   │               │   └── Submission.java
+│   │   │               ├── repository/
+│   │   │               │   ├── AssignmentRepository.java
+│   │   │               │   └── SubmissionRepository.java
+│   │   │               ├── dto/
+│   │   │               │   ├── request/
+│   │   │               │   │   ├── CreateAssignmentRequest.java
+│   │   │               │   │   ├── SubmitAssignmentRequest.java
+│   │   │               │   │   └── EvaluateSubmissionRequest.java
+│   │   │               │   ├── response/
+│   │   │               │   │   ├── AssignmentDTO.java
+│   │   │               │   │   ├── SubmissionDTO.java
+│   │   │               │   │   ├── SubmissionWithStudentDTO.java
+│   │   │               │   │   ├── AnalyticsDTO.java
+│   │   │               │   │   └── FileUploadResponse.java
+│   │   │               │   └── ApiResponse.java
+│   │   │               ├── service/
+│   │   │               │   ├── AssignmentService.java
+│   │   │               │   ├── SubmissionService.java
+│   │   │               │   ├── CloudinaryService.java
+│   │   │               │   ├── FileValidationService.java
+│   │   │               │   └── AnalyticsService.java
+│   │   │               ├── client/
+│   │   │               │   ├── AcademicServiceClient.java
+│   │   │               │   └── UserServiceClient.java
+│   │   │               ├── controller/
+│   │   │               │   └── AssignmentController.java
+│   │   │               ├── exception/
+│   │   │               │   ├── GlobalExceptionHandler.java
+│   │   │               │   ├── ResourceNotFoundException.java
+│   │   │               │   ├── UnauthorizedException.java
+│   │   │               │   ├── InvalidFileException.java
+│   │   │               │   ├── FileUploadException.java
+│   │   │               │   └── DeadlineExceededException.java
+│   │   │               └── security/
+│   │   │                   ├── JwtTokenUtil.java
+│   │   │                   ├── JwtRequestFilter.java
+│   │   │                   └── JwtAuthenticationEntryPoint.java
+│   │   └── resources/
+│   │       ├── application.properties
+│   │       └── application-dev.properties
+│   └── test/
+│       └── java/
+│           └── com/
+│               └── cdac/
+│                   └── assignmentservice/
+│                       ├── service/
+│                       ├── controller/
+│                       └── repository/
+├── pom.xml
+└── README.md

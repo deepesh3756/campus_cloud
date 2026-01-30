@@ -1,115 +1,160 @@
-import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { Check, ChevronDown, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import AdminBreadcrumb from "../../components/common/AdminBreadcrumb";
-
-const SUBJECT_OPTIONS = [
-  "C++",
-  "Java",
-  "Data Structures and Algorithms",
-  "Web based Java programming",
-  "Databases",
-  "COSDM",
-  "Microsoft .Net",
-  "Operating Systems",
-  "WPT",
-];
+import academicService from "../../services/api/academicService";
+import { toast } from "react-toastify";
+import { Pencil, X, Check, Plus } from "lucide-react";
 
 const AddCoursePage = () => {
-  const navigate = useNavigate();
-  const { courseId } = useParams();
+  const NEW_COURSE_ID = "__new_course__";
 
-  const isEdit = Boolean(courseId);
+  const [allCourses, setAllCourses] = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
+  const [coursesError, setCoursesError] = useState("");
 
-  const existingCourses = useMemo(
-    () => [
-      {
-        id: "pg-dac-aug-2025",
-        code: "PG-DAC",
-        name: "Post graduate diploma in advanced computing",
-        startDate: "2025-08-01",
-        endDate: "2026-02-01",
-        subjects: ["C++", "Java", "Data Structures and Algorithms"],
-        status: "Active",
-      },
-    ],
-    []
-  );
-
-  const existing = isEdit ? existingCourses.find((c) => c.id === courseId) : null;
-
-  const [courseCode, setCourseCode] = useState(existing?.code || "");
-  const [courseName, setCourseName] = useState(existing?.name || "");
-  const [startDate, setStartDate] = useState(existing?.startDate || "");
-  const [endDate, setEndDate] = useState(existing?.endDate || "");
-  const [status, setStatus] = useState(existing?.status || "Active");
-  const [subjects, setSubjects] = useState(existing?.subjects || []);
-
-  const [subjectDropdownOpen, setSubjectDropdownOpen] = useState(false);
-  const [subjectSearch, setSubjectSearch] = useState("");
-
-  const [errors, setErrors] = useState({});
+  const [editingCourseId, setEditingCourseId] = useState("");
+  const [editDraft, setEditDraft] = useState({ courseCode: "", courseName: "", durationMonths: "", status: "ACTIVE" });
 
   const breadcrumbItems = useMemo(() => {
-    if (isEdit) {
-      return [{ label: "Courses", to: "/admin/courses" }, { label: "Edit Course" }];
+    return [{ label: "Courses", to: "/admin/courses" }, { label: "Add / Update Course" }];
+  }, []);
+
+  const getApiErrorMessage = (err, fallback) => {
+    const apiMessage = err?.response?.data?.message;
+    if (typeof apiMessage === "string" && apiMessage.trim()) return apiMessage;
+    const message = err?.message;
+    if (typeof message === "string" && message.trim()) return message;
+    return fallback;
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAllCourses = async () => {
+      setCoursesLoading(true);
+      setCoursesError("");
+      try {
+        const data = await academicService.getCourses();
+        if (!isMounted) return;
+        setAllCourses(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (!isMounted) return;
+        const msg = getApiErrorMessage(err, "Failed to load courses");
+        setCoursesError(msg);
+      } finally {
+        if (isMounted) setCoursesLoading(false);
+      }
+    };
+
+    fetchAllCourses();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleToggleStatus = async (course) => {
+    if (!course?.courseId) return;
+
+    if (String(course.courseId) === NEW_COURSE_ID) {
+      setEditDraft((p) => ({
+        ...p,
+        status: String(p.status || "").toUpperCase() === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+      }));
+      return;
     }
 
-    return [{ label: "Courses", to: "/admin/courses" }, { label: "Add Course" }];
-  }, [isEdit]);
+    const nextStatus = String(course.status || "").toUpperCase() === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    try {
+      const updated = await academicService.updateCourse(course.courseId, { status: nextStatus });
+      setAllCourses((prev) => prev.map((c) => (c.courseId === course.courseId ? updated : c)));
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to update status"), { autoClose: 3500 });
+    }
+  };
 
-  const filteredSubjectOptions = useMemo(() => {
-    const q = subjectSearch.trim().toLowerCase();
-    if (!q) return SUBJECT_OPTIONS;
-    return SUBJECT_OPTIONS.filter((s) => s.toLowerCase().includes(q));
-  }, [subjectSearch]);
-
-  const toggleSubject = (subject) => {
-    setSubjects((prev) => {
-      if (prev.includes(subject)) return prev.filter((s) => s !== subject);
-      return [...prev, subject];
+  const startEditRow = (course) => {
+    setEditingCourseId(String(course.courseId));
+    setEditDraft({
+      courseCode: course.courseCode || "",
+      courseName: course.courseName || "",
+      durationMonths: String(course.durationMonths ?? ""),
+      status: String(course.status || "ACTIVE").toUpperCase(),
     });
   };
 
-  const validate = () => {
-    const next = {};
-
-    const trimmedCode = courseCode.trim();
-    const trimmedName = courseName.trim();
-
-    if (!trimmedCode) next.courseCode = "Course Code is required";
-    else if (trimmedCode.length < 2 || trimmedCode.length > 20) {
-      next.courseCode = "Course Code must be 2-20 characters";
+  const cancelEditRow = () => {
+    if (String(editingCourseId) === NEW_COURSE_ID) {
+      setAllCourses((prev) => prev.filter((c) => String(c.courseId) !== NEW_COURSE_ID));
     }
-
-    if (!trimmedName) next.courseName = "Course Name is required";
-    else if (trimmedName.length < 2 || trimmedName.length > 100) {
-      next.courseName = "Course Name must be 2-100 characters";
-    }
-
-    if (!startDate) next.startDate = "Start Date is required";
-    if (!endDate) next.endDate = "End Date is required";
-
-    if (startDate && endDate) {
-      const s = new Date(startDate);
-      const e = new Date(endDate);
-      s.setHours(0, 0, 0, 0);
-      e.setHours(0, 0, 0, 0);
-      if (e < s) next.endDate = "End Date cannot be before Start Date";
-    }
-
-    if (!status) next.status = "Status is required";
-    if (!subjects.length) next.subjects = "Please select at least one subject";
-
-    setErrors(next);
-    return Object.keys(next).length === 0;
+    setEditingCourseId("");
+    setEditDraft({ courseCode: "", courseName: "", durationMonths: "", status: "ACTIVE" });
   };
 
-  const handleSave = (e) => {
-    e.preventDefault();
-    if (!validate()) return;
+  const saveEditRow = async (courseId) => {
+    if (String(courseId) === NEW_COURSE_ID) {
+      const dur = Number(editDraft.durationMonths);
+      if (!editDraft.courseCode.trim() || !editDraft.courseName.trim() || !dur || Number.isNaN(dur) || dur < 1) {
+        toast.error("Please provide valid Course Code, Course Name and Duration", { autoClose: 3500 });
+        return;
+      }
 
-    navigate("/admin/courses");
+      try {
+        const created = await academicService.createCourse({
+          courseCode: editDraft.courseCode.trim(),
+          courseName: editDraft.courseName.trim(),
+          durationMonths: dur,
+          status: String(editDraft.status || "ACTIVE").toUpperCase(),
+        });
+
+        setAllCourses((prev) => {
+          const cleaned = prev.filter((c) => String(c.courseId) !== NEW_COURSE_ID);
+          return [...cleaned, created];
+        });
+        cancelEditRow();
+        toast.success("Course created successfully", { autoClose: 2500 });
+      } catch (err) {
+        toast.error(getApiErrorMessage(err, "Failed to create course"), { autoClose: 3500 });
+      }
+      return;
+    }
+
+    const cid = Number(courseId);
+    if (!cid) return;
+
+    const dur = Number(editDraft.durationMonths);
+    if (!editDraft.courseCode.trim() || !editDraft.courseName.trim() || !dur || Number.isNaN(dur) || dur < 1) {
+      toast.error("Please provide valid Course Code, Course Name and Duration", { autoClose: 3500 });
+      return;
+    }
+
+    try {
+      const updated = await academicService.updateCourse(cid, {
+        courseCode: editDraft.courseCode.trim(),
+        courseName: editDraft.courseName.trim(),
+        durationMonths: dur,
+      });
+      setAllCourses((prev) => prev.map((c) => (c.courseId === cid ? updated : c)));
+      cancelEditRow();
+      toast.success("Course updated successfully", { autoClose: 2500 });
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to update course"), { autoClose: 3500 });
+    }
+  };
+
+  const addNewCourseRow = () => {
+    if (String(editingCourseId) === NEW_COURSE_ID) return;
+    if (allCourses.some((c) => String(c.courseId) === NEW_COURSE_ID)) return;
+
+    setAllCourses((prev) => [
+      ...prev,
+      {
+        courseId: NEW_COURSE_ID,
+        courseCode: "",
+        courseName: "",
+        durationMonths: "",
+        status: "ACTIVE",
+      },
+    ]);
+    setEditingCourseId(NEW_COURSE_ID);
+    setEditDraft({ courseCode: "", courseName: "", durationMonths: "", status: "ACTIVE" });
   };
 
   return (
@@ -117,164 +162,179 @@ const AddCoursePage = () => {
       <AdminBreadcrumb items={breadcrumbItems} />
 
       <div className="d-flex justify-content-center">
-        <div className="card border-0 shadow-sm w-100" style={{ maxWidth: 760, borderRadius: 14 }}>
+        <div
+          className="card border-0 shadow-sm w-100"
+          style={{
+            maxWidth: 1100,
+            borderRadius: 14,
+          }}
+        >
           <div className="card-body p-4">
-            <h4 className="fw-bold mb-4">Add New Course / Edit course</h4>
+            <h4 className="fw-bold mb-4">Add / Update Course</h4>
 
-            <form onSubmit={handleSave}>
-              <div className="row g-4">
-                <div className="col-12 col-md-6">
-                  <label className="form-label fw-semibold">Course Code</label>
-                  <input
-                    type="text"
-                    className={`form-control ${errors.courseCode ? "is-invalid" : ""}`}
-                    value={courseCode}
-                    onChange={(e) => setCourseCode(e.target.value)}
-                    placeholder="PG-DAC"
-                  />
-                  {errors.courseCode ? <div className="invalid-feedback">{errors.courseCode}</div> : null}
-                </div>
+            <div className="table-responsive">
+              <table className="table align-middle mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th scope="col" className="px-3 py-3 text-center" style={{ width: 80 }}>
+                        S.no
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-center" style={{ width: 140 }}>
+                        Course Code
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-center" style={{ minWidth: 240 }}>
+                        Course Name
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-center" style={{ width: 140 }}>
+                        Duration
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-center" style={{ width: 160 }}>
+                        Status
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-center" style={{ width: 140 }}>
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {coursesLoading ? (
+                      <tr>
+                        <td className="px-3 py-4 text-center text-secondary" colSpan={6}>
+                          Loading...
+                        </td>
+                      </tr>
+                    ) : coursesError ? (
+                      <tr>
+                        <td className="px-3 py-4 text-center text-danger" colSpan={6}>
+                          {coursesError}
+                        </td>
+                      </tr>
+                    ) : allCourses.length ? (
+                      allCourses.map((c, idx) => {
+                        const isRowEditing = String(editingCourseId) === String(c.courseId);
+                        return (
+                          <tr key={c.courseId}>
+                            <td className="px-3 py-3 text-center text-secondary">{idx + 1}</td>
 
-                <div className="col-12 col-md-6">
-                  <label className="form-label fw-semibold">Course Name</label>
-                  <input
-                    type="text"
-                    className={`form-control ${errors.courseName ? "is-invalid" : ""}`}
-                    value={courseName}
-                    onChange={(e) => setCourseName(e.target.value)}
-                    placeholder="Post graduate diploma in advanced computing"
-                  />
-                  {errors.courseName ? <div className="invalid-feedback">{errors.courseName}</div> : null}
-                </div>
+                            <td className="px-3 py-3 text-center">
+                              {isRowEditing ? (
+                                <input
+                                  type="text"
+                                  className="form-control form-control-sm"
+                                  value={editDraft.courseCode}
+                                  onChange={(e) => setEditDraft((p) => ({ ...p, courseCode: e.target.value }))}
+                                />
+                              ) : (
+                                <span className="fw-semibold">{c.courseCode}</span>
+                              )}
+                            </td>
 
-                <div className="col-12 col-md-6">
-                  <label className="form-label fw-semibold">Start Date</label>
-                  <input
-                    type="date"
-                    className={`form-control ${errors.startDate ? "is-invalid" : ""}`}
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                  {errors.startDate ? <div className="invalid-feedback">{errors.startDate}</div> : null}
-                </div>
+                            <td className="px-3 py-3">
+                              {isRowEditing ? (
+                                <input
+                                  type="text"
+                                  className="form-control form-control-sm"
+                                  value={editDraft.courseName}
+                                  onChange={(e) => setEditDraft((p) => ({ ...p, courseName: e.target.value }))}
+                                />
+                              ) : (
+                                <span className="text-secondary">{c.courseName}</span>
+                              )}
+                            </td>
 
-                <div className="col-12 col-md-6">
-                  <label className="form-label fw-semibold">End Date</label>
-                  <input
-                    type="date"
-                    className={`form-control ${errors.endDate ? "is-invalid" : ""}`}
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                  {errors.endDate ? <div className="invalid-feedback">{errors.endDate}</div> : null}
-                </div>
+                            <td className="px-3 py-3 text-center">
+                              {isRowEditing ? (
+                                <input
+                                  type="number"
+                                  min={1}
+                                  className="form-control form-control-sm"
+                                  value={editDraft.durationMonths}
+                                  onChange={(e) => setEditDraft((p) => ({ ...p, durationMonths: e.target.value }))}
+                                />
+                              ) : (
+                                <span className="text-secondary">{c.durationMonths}</span>
+                              )}
+                            </td>
 
-                <div className="col-12">
-                  <label className="form-label fw-semibold">Add Subjects</label>
+                            <td className="px-3 py-3 text-center">
+                              <div className="form-check form-switch d-inline-flex align-items-center gap-2">
+                                <input
+                                  className="form-check-input"
+                                  type="checkbox"
+                                  checked={
+                                    isRowEditing && String(c.courseId) === NEW_COURSE_ID
+                                      ? String(editDraft.status || "").toUpperCase() === "ACTIVE"
+                                      : String(c.status || "").toUpperCase() === "ACTIVE"
+                                  }
+                                  onChange={() => handleToggleStatus(c)}
+                                />
+                                <span className="text-secondary" style={{ fontSize: 13 }}>
+                                  {(isRowEditing && String(c.courseId) === NEW_COURSE_ID
+                                    ? String(editDraft.status || "").toUpperCase() === "ACTIVE"
+                                    : String(c.status || "").toUpperCase() === "ACTIVE")
+                                    ? "ON"
+                                    : "OFF"}
+                                </span>
+                              </div>
+                            </td>
 
-                  <div className="position-relative">
-                    <button
-                      type="button"
-                      className={`form-control d-flex align-items-center justify-content-between ${
-                        errors.subjects ? "is-invalid" : ""
-                      }`}
-                      onClick={() => setSubjectDropdownOpen((p) => !p)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <div className="d-flex align-items-center flex-wrap gap-2" style={{ minHeight: 24 }}>
-                        {subjects.length ? (
-                          subjects.map((s) => (
-                            <span
-                              key={s}
-                              className="badge text-bg-light border"
-                              style={{ fontWeight: 600 }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleSubject(s);
-                              }}
-                            >
-                              {s} <span className="ms-1">×</span>
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-secondary" style={{ fontSize: 14 }}>
-                            Select subjects
-                          </span>
-                        )}
-                      </div>
-                      <ChevronDown size={18} className="text-secondary" />
-                    </button>
-
-                    {errors.subjects ? <div className="invalid-feedback d-block">{errors.subjects}</div> : null}
-
-                    {subjectDropdownOpen ? (
-                      <div
-                        className="position-absolute bg-white border shadow-sm w-100 mt-2"
-                        style={{ zIndex: 10, borderRadius: 12 }}
-                      >
-                        <div className="p-2 border-bottom">
-                          <div className="input-group">
-                            <span className="input-group-text bg-white border-0">
-                              <Search size={16} className="text-secondary" />
-                            </span>
-                            <input
-                              type="text"
-                              className="form-control border-0"
-                              value={subjectSearch}
-                              onChange={(e) => setSubjectSearch(e.target.value)}
-                              placeholder="Search"
-                            />
-                          </div>
+                            <td className="px-3 py-3 text-center">
+                              {isRowEditing ? (
+                                <div className="d-inline-flex align-items-center gap-2">
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-link text-secondary"
+                                    onClick={cancelEditRow}
+                                  >
+                                    <X size={16} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-link text-success"
+                                    onClick={() => saveEditRow(c.courseId)}
+                                  >
+                                    <Check size={16} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-link text-secondary"
+                                  onClick={() => startEditRow(c)}
+                                >
+                                  <Pencil size={16} />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td className="px-3 py-4 text-center text-secondary" colSpan={6}>
+                          No courses found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td className="px-3 py-3" colSpan={6}>
+                        <div className="d-flex justify-content-end">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-primary d-inline-flex align-items-center gap-2"
+                            onClick={addNewCourseRow}
+                          >
+                            <Plus size={16} />
+                        Add New Course
+                          </button>
                         </div>
-
-                        <div style={{ maxHeight: 220, overflowY: "auto" }}>
-                          {filteredSubjectOptions.map((subject) => {
-                            const selected = subjects.includes(subject);
-                            return (
-                              <button
-                                type="button"
-                                key={subject}
-                                className="w-100 btn text-start d-flex align-items-center justify-content-between px-3 py-2"
-                                onClick={() => toggleSubject(subject)}
-                              >
-                                <span style={{ color: "#4f46e5", fontWeight: 600 }}>{subject}</span>
-                                {selected ? <Check size={18} style={{ color: "#4f46e5" }} /> : <span />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="col-12">
-                  <label className="form-label fw-semibold">Status</label>
-                  <select
-                    className={`form-select ${errors.status ? "is-invalid" : ""}`}
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                  {errors.status ? <div className="invalid-feedback">{errors.status}</div> : null}
-                </div>
-
-                <div className="col-12 d-flex justify-content-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    className="btn btn-light border"
-                    onClick={() => navigate("/admin/courses")}
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    Save course
-                  </button>
-                </div>
-              </div>
-            </form>
+                      </td>
+                    </tr>
+                  </tfoot>
+              </table>
+            </div>
           </div>
         </div>
       </div>

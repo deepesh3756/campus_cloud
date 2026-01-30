@@ -1,13 +1,11 @@
 package com.campuscloud.users_service.config;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.web.cors.*;
 
 import java.util.List;
 
 public class CorsConfig {
 
-    @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
         CorsConfiguration config = new CorsConfiguration();

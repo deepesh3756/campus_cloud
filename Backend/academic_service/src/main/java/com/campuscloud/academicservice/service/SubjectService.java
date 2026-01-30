@@ -3,6 +3,7 @@ package com.campuscloud.academicservice.service;
 
 
 import com.campuscloud.academicservice.dto.request.CreateSubjectRequest;
+import com.campuscloud.academicservice.dto.request.UpdateSubjectRequest;
 import com.campuscloud.academicservice.dto.response.SubjectDTO;
 import com.campuscloud.academicservice.entity.Subject;
 import com.campuscloud.academicservice.exception.DuplicateResourceException;
@@ -52,6 +53,26 @@ public class SubjectService {
         return subjectRepository.findAll().stream()
                 .map(SubjectDTO::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public SubjectDTO updateSubject(Long subjectId, UpdateSubjectRequest request) {
+        Subject subject = subjectRepository.findById(subjectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Subject not found: " + subjectId));
+
+        String nextCode = request.getSubjectCode();
+        if (nextCode != null && !nextCode.equals(subject.getSubjectCode())) {
+            if (subjectRepository.existsBySubjectCode(nextCode)) {
+                throw new DuplicateResourceException("Subject code already exists: " + nextCode);
+            }
+            subject.setSubjectCode(nextCode);
+        }
+
+        subject.setSubjectName(request.getSubjectName());
+
+        Subject saved = subjectRepository.save(subject);
+        log.info("Subject updated: {}", subjectId);
+        return SubjectDTO.fromEntity(saved);
     }
     
     @Transactional

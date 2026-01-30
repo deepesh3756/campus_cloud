@@ -36,9 +36,6 @@ public class SecurityConfig {
 	    http
 	        .csrf(csrf -> csrf.disable())
 
-	        // 🔴 THIS IS THE KEY FIX
-	        .anonymous(anonymous -> anonymous.disable())
-
 	        .sessionManagement(session ->
 	            session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 	        )
@@ -51,6 +48,7 @@ public class SecurityConfig {
 	            ).permitAll()
 	            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 	            .requestMatchers(
+	            	"/api/users/register/**",
 	                "/api/users/login",
 	                "/api/users/refresh-token",
 	                "/api/users/logout"

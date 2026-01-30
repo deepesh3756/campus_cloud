@@ -37,7 +37,7 @@ public class CourseService {
                 .courseCode(request.getCourseCode())
                 .courseName(request.getCourseName())
                 .durationMonths(request.getDurationMonths())
-                .status(CourseStatus.ACTIVE)
+                .status(request.getStatus() == null ? CourseStatus.ACTIVE : request.getStatus())
                 .build();
         
         Course savedCourse = courseRepository.save(course);

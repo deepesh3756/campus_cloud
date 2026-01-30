@@ -21,6 +21,8 @@ public interface StudentEnrollmentRepository extends JpaRepository<StudentEnroll
     
     List<StudentEnrollment> findByBatchCourse_BatchCourseId(Long batchCourseId);
     
+    boolean existsByBatchCourse_BatchCourseId(Long batchCourseId);
+    
     List<StudentEnrollment> findByBatchCourse_Batch_BatchId(Long batchId);
     
     List<StudentEnrollment> findByStatus(StudentEnrollmentStatus status);

@@ -1,7 +1,9 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Camera } from "lucide-react";
+import { Camera, Eye, EyeOff } from "lucide-react";
 import AdminBreadcrumb from "../../components/common/AdminBreadcrumb";
+import authService from "../../services/api/authService";
+import { toast } from "react-toastify";
 
 const AddFacultyPage = () => {
   const navigate = useNavigate();
@@ -15,13 +17,11 @@ const AddFacultyPage = () => {
     () => [
       {
         id: "123456789012",
-        facultyCode: "FAC0025",
         firstName: "John",
         lastName: "Doe",
         email: "john.doe@example.com",
         mobile: "9876543210",
         gender: "Male",
-        status: "Active",
         password: "password",
         profilePicture: "https://i.pravatar.cc/300",
       },
@@ -31,15 +31,21 @@ const AddFacultyPage = () => {
 
   const existing = isEdit ? existingFaculties.find((f) => f.id === facultyId) : null;
 
-  const [facultyCode, setFacultyCode] = useState(existing?.facultyCode || "");
+  const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState(existing?.firstName || "");
   const [lastName, setLastName] = useState(existing?.lastName || "");
   const [email, setEmail] = useState(existing?.email || "");
   const [mobile, setMobile] = useState(existing?.mobile || "");
-  const [gender, setGender] = useState(existing?.gender || "");
-  const [status, setStatus] = useState(existing?.status || "");
+  const [gender, setGender] = useState("");
   const [password, setPassword] = useState(existing?.password || "");
+  const [showPassword, setShowPassword] = useState(false);
   const [profileImage, setProfileImage] = useState(existing?.profilePicture || "https://i.pravatar.cc/300");
+
+  // Track if user has manually edited username or password
+  const [usernameTouched, setUsernameTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+
+  const [saving, setSaving] = useState(false);
 
   const [errors, setErrors] = useState({});
 
@@ -54,13 +60,13 @@ const AddFacultyPage = () => {
   const validate = () => {
     const next = {};
 
-    const code = facultyCode.trim();
+    const u = username.trim();
     const f = firstName.trim();
     const l = lastName.trim();
     const e = email.trim();
     const m = mobile.trim();
 
-    if (!code) next.facultyCode = "Faculty ID is required";
+    if (!u) next.username = "Username is required";
 
     if (!f) next.firstName = "First Name is required";
     if (!l) next.lastName = "Last Name is required";
@@ -72,7 +78,6 @@ const AddFacultyPage = () => {
     else if (!/^\d{10}$/.test(m)) next.mobile = "Mobile must be 10 digits";
 
     if (!gender) next.gender = "Gender is required";
-    if (!status) next.status = "Status is required";
 
     if (!password) next.password = "Password is required";
     else if (password.length < 6) next.password = "Password must be at least 6 characters";
@@ -81,11 +86,82 @@ const AddFacultyPage = () => {
     return Object.keys(next).length === 0;
   };
 
-  const handleSave = (e) => {
+  // Handler for email field - auto-updates username if not manually touched
+  const handleEmailChange = (e) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    
+    // Auto-fill username if user hasn't manually edited it
+    if (!usernameTouched) {
+      setUsername(newEmail);
+    }
+  };
+
+  // Handler for mobile field - auto-updates password if not manually touched
+  const handleMobileChange = (e) => {
+    const newMobile = e.target.value;
+    setMobile(newMobile);
+    
+    // Auto-fill password if user hasn't manually edited it
+    if (!passwordTouched) {
+      setPassword(newMobile);
+    }
+  };
+
+  // Handler for username field - marks it as manually touched
+  const handleUsernameChange = (e) => {
+    setUsername(e.target.value);
+    setUsernameTouched(true);
+  };
+
+  // Handler for password field - marks it as manually touched
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
+    setPasswordTouched(true);
+  };
+
+  const handleSave = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
-    navigate("/admin/faculty");
+    if (isEdit) {
+      toast.error("Edit Faculty is not supported yet. Please register a new faculty.", { autoClose: 3500 });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await authService.registerFaculty({
+        username: username.trim(),
+        password,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        mobile: mobile.trim(),
+        gender: String(gender).toUpperCase(),
+        profilePictureUrl: profileImage,
+      });
+
+      toast.success("Faculty registered successfully", { autoClose: 2500 });
+
+      setUsername("");
+      setFirstName("");
+      setLastName("");
+      setEmail("");
+      setMobile("");
+      setGender("");
+      setPassword("");
+      setShowPassword(false);
+      setProfileImage("https://i.pravatar.cc/300");
+      setErrors({});
+      setUsernameTouched(false);
+      setPasswordTouched(false);
+    } catch (err) {
+      const message = err?.response?.data?.message || err?.message || "Failed to register faculty";
+      toast.error(message, { autoClose: 3500 });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleImageClick = () => {
@@ -114,15 +190,16 @@ const AddFacultyPage = () => {
                 <form onSubmit={handleSave}>
                   <div className="row g-4">
                     <div className="col-12 col-md-6">
-                      <label className="form-label fw-semibold">Faculty ID</label>
+                      <label className="form-label fw-semibold">Username</label>
                       <input
                         type="text"
-                        className={`form-control ${errors.facultyCode ? "is-invalid" : ""}`}
-                        value={facultyCode}
-                        onChange={(e) => setFacultyCode(e.target.value)}
-                        placeholder="Enter faculty ID"
+                        className={`form-control ${errors.username ? "is-invalid" : ""}`}
+                        value={username}
+                        onChange={handleUsernameChange}
+                        placeholder="faculty_test_01"
+                        disabled={saving}
                       />
-                      {errors.facultyCode ? <div className="invalid-feedback">{errors.facultyCode}</div> : null}
+                      {errors.username ? <div className="invalid-feedback">{errors.username}</div> : null}
                     </div>
 
                     <div className="col-12 col-md-6">
@@ -158,6 +235,7 @@ const AddFacultyPage = () => {
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         placeholder="Enter first name"
+                        disabled={saving}
                       />
                       {errors.firstName ? <div className="invalid-feedback">{errors.firstName}</div> : null}
                     </div>
@@ -170,6 +248,7 @@ const AddFacultyPage = () => {
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         placeholder="Enter last name"
+                        disabled={saving}
                       />
                       {errors.lastName ? <div className="invalid-feedback">{errors.lastName}</div> : null}
                     </div>
@@ -180,8 +259,9 @@ const AddFacultyPage = () => {
                         type="email"
                         className={`form-control ${errors.email ? "is-invalid" : ""}`}
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={handleEmailChange}
                         placeholder="Enter email"
+                        disabled={saving}
                       />
                       {errors.email ? <div className="invalid-feedback">{errors.email}</div> : null}
                     </div>
@@ -192,8 +272,9 @@ const AddFacultyPage = () => {
                         type="text"
                         className={`form-control ${errors.mobile ? "is-invalid" : ""}`}
                         value={mobile}
-                        onChange={(e) => setMobile(e.target.value)}
+                        onChange={handleMobileChange}
                         placeholder="Enter mobile number"
+                        disabled={saving}
                       />
                       {errors.mobile ? <div className="invalid-feedback">{errors.mobile}</div> : null}
                     </div>
@@ -204,39 +285,39 @@ const AddFacultyPage = () => {
                         className={`form-select ${errors.gender ? "is-invalid" : ""}`}
                         value={gender}
                         onChange={(e) => setGender(e.target.value)}
+                        disabled={saving}
                       >
                         <option value="">Select gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
+                        <option value="MALE">MALE</option>
+                        <option value="FEMALE">FEMALE</option>
+                        <option value="OTHER">OTHER</option>
                       </select>
                       {errors.gender ? <div className="invalid-feedback">{errors.gender}</div> : null}
                     </div>
 
                     <div className="col-12 col-md-6">
                       <label className="form-label fw-semibold">Password</label>
-                      <input
-                        type="password"
-                        className={`form-control ${errors.password ? "is-invalid" : ""}`}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter password"
-                      />
-                      {errors.password ? <div className="invalid-feedback">{errors.password}</div> : null}
-                    </div>
-
-                    <div className="col-12 col-md-6">
-                      <label className="form-label fw-semibold">Status</label>
-                      <select
-                        className={`form-select ${errors.status ? "is-invalid" : ""}`}
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                      >
-                        <option value="">Select status</option>
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                      </select>
-                      {errors.status ? <div className="invalid-feedback">{errors.status}</div> : null}
+                      <div className="position-relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          className={`form-control ${errors.password ? "is-invalid" : ""}`}
+                          value={password}
+                          onChange={handlePasswordChange}
+                          placeholder="Enter password"
+                          style={{ paddingRight: 40 }}
+                          disabled={saving}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-link position-absolute top-50 end-0 translate-middle-y text-secondary"
+                          onClick={() => setShowPassword(!showPassword)}
+                          style={{ padding: "0 10px", zIndex: 5 }}
+                          disabled={saving}
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                      {errors.password ? <div className="invalid-feedback d-block">{errors.password}</div> : null}
                     </div>
 
                     <div className="col-12 col-md-6">
@@ -248,11 +329,12 @@ const AddFacultyPage = () => {
                         type="button"
                         className="btn btn-light border"
                         onClick={() => navigate("/admin/faculty")}
+                        disabled={saving}
                       >
                         Cancel
                       </button>
                       <button type="submit" className="btn btn-primary" style={{ minWidth: 120 }}>
-                        Save
+                        {saving ? "Saving..." : "Save"}
                       </button>
                     </div>
                   </div>

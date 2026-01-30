@@ -30,6 +30,7 @@
 	<properties>
 	  <java.version>17</java.version>
 	  <spring-cloud.version>2023.0.4</spring-cloud.version>
+	  <lombok.version>1.18.30</lombok.version>
 	</properties>
 	
 	<dependencyManagement>
@@ -62,6 +63,18 @@
 	  <dependency>
 	    <groupId>org.springframework.cloud</groupId>
 	    <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+	  </dependency>
+
+	  <!-- Spring Cloud OpenFeign -->
+	  <dependency>
+	    <groupId>org.springframework.cloud</groupId>
+	    <artifactId>spring-cloud-starter-openfeign</artifactId>
+	  </dependency>
+
+	  <!-- LoadBalancer (used by Feign when calling lb:// services) -->
+	  <dependency>
+	    <groupId>org.springframework.cloud</groupId>
+	    <artifactId>spring-cloud-starter-loadbalancer</artifactId>
 	  </dependency>
 	
 	  <!-- Security -->
@@ -138,6 +151,7 @@
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
