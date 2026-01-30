@@ -161,9 +161,6 @@ CREATE TABLE students (
 
     user_id BIGINT NOT NULL UNIQUE,
 
-    -- Batch-Course mapping (student enrolled in a specific batch-course)
-    batch_course_id BIGINT NOT NULL,
-
     prn VARCHAR(50) UNIQUE NOT NULL,
 
     first_name VARCHAR(100) NOT NULL,
@@ -198,7 +195,6 @@ CREATE TABLE students (
 
 INSERT INTO students (
     user_id,
-    batch_course_id,
     prn,
     first_name,
     last_name,
@@ -209,7 +205,6 @@ INSERT INTO students (
 ) VALUES
 (
     5,
-    1,
     'PRN251001',
     'Aarav',
     'Sharma',
@@ -220,7 +215,6 @@ INSERT INTO students (
 ),
 (
     6,
-    2,
     'PRN251002',
     'Riya',
     'Patel',
@@ -231,7 +225,6 @@ INSERT INTO students (
 ),
 (
     7,
-    5,
     'PRN252001',
     'Kabir',
     'Mehta',
@@ -306,13 +299,22 @@ CREATE TABLE refresh_tokens (
         ON DELETE CASCADE
 );
 
+
 -- =====================================================
 -- DATABASE 2 - ACADEMIC_DB
+-- =====================================================
+-- =====================================================
+-- DATABASE: academic_db
+-- PURPOSE: Batch, Course, Subject management & Enrollments
 -- =====================================================
 
 DROP DATABASE IF EXISTS academic_db;
 CREATE DATABASE academic_db;
 USE academic_db;
+
+-- =====================================================
+-- BATCHES
+-- =====================================================
 
 CREATE TABLE batches (
     batch_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -344,13 +346,9 @@ CREATE TABLE batches (
     INDEX idx_status (status)
 ) ENGINE=InnoDB;
 
-INSERT INTO batches
-(batch_id, batch_name, start_date, end_date, status, description)
-VALUES
-(251, 'FEB_2025', '2025-02-04', '2025-08-22', 'COMPLETED', 'February 2025 batch'),
-(252, 'AUG_2025', '2025-08-22', '2026-02-04', 'ACTIVE', 'August 2025 batch');
-
-ALTER TABLE batches AUTO_INCREMENT = 253;
+-- =====================================================
+-- COURSES
+-- =====================================================
 
 CREATE TABLE courses (
     course_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -377,13 +375,9 @@ CREATE TABLE courses (
     INDEX idx_course_code (course_code)
 ) ENGINE=InnoDB;
 
-INSERT INTO courses
-(course_code, course_name, duration_months, status)
-VALUES
-('PG-DAC',  'PG Diploma in Advanced Computing',        6, 'ACTIVE'),
-('PG-DBDA', 'PG Diploma in Big Data Analytics',        6, 'ACTIVE'),
-('PG-DTSS', 'PG Diploma in IT Infrastructure, Systems and Security', 6, 'ACTIVE'),
-('PG-DAI',  'PG Diploma in Artificial Intelligence',  6, 'ACTIVE');
+-- =====================================================
+-- SUBJECTS
+-- =====================================================
 
 CREATE TABLE subjects (
     subject_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -405,21 +399,9 @@ CREATE TABLE subjects (
     INDEX idx_subject_code (subject_code)
 ) ENGINE=InnoDB;
 
-INSERT INTO subjects
-(subject_code, subject_name)
-VALUES
-('COMM101', 'Effective Communication'),
-('APT101',  'Aptitude'),
-('ADS201',  'ADS Using Java'),
-('CPP101',  'C++ Programming'),
-('COS201',  'COSSDM – Concepts of Software Development Models'),
-('COS202',  'COSSDM – Git and DevOps'),
-('COS203',  'COSSDM – Software Design Models'),
-('COS204',  'COSSDM – Software Testing'),
-('DBT101',  'Database Technologies'),
-('OOP201',  'Object-Oriented Programming with Java'),
-('WEB301',  'Web Based Java Programming'),
-('WEB101',  'Web Programming Technologies');
+-- =====================================================
+-- BATCH-COURSE MAPPING
+-- =====================================================
 
 CREATE TABLE batch_courses (
     batch_course_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -453,20 +435,9 @@ CREATE TABLE batch_courses (
     INDEX idx_course_id (course_id)
 ) ENGINE=InnoDB;
 
-INSERT INTO batch_courses
-(batch_id, course_id, start_date, end_date)
-VALUES
--- FEB_2025 batch (batch_id = 251)
-(251, 1, '2025-02-04', '2025-08-22'), -- PG-DAC
-(251, 2, '2025-02-04', '2025-08-22'), -- PG-DBDA
-(251, 3, '2025-02-04', '2025-08-22'), -- PG-DTSS
-(251, 4, '2025-02-04', '2025-08-22'), -- PG-DAI
-
--- AUG_2025 batch (batch_id = 252)
-(252, 1, '2025-08-22', '2026-02-04'), -- PG-DAC
-(252, 2, '2025-08-22', '2026-02-04'), -- PG-DBDA
-(252, 3, '2025-08-22', '2026-02-04'), -- PG-DTSS
-(252, 4, '2025-08-22', '2026-02-04'); -- PG-DAI
+-- =====================================================
+-- BATCH-COURSE-SUBJECT MAPPING
+-- =====================================================
 
 CREATE TABLE batch_course_subjects (
     batch_course_subject_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -497,27 +468,55 @@ CREATE TABLE batch_course_subjects (
     INDEX idx_subject_id (subject_id)
 ) ENGINE=InnoDB;
 
-INSERT INTO batch_course_subjects
-(batch_course_id, subject_id)
-VALUES
--- FEB_2025 batch
-(1,  1),   -- PG-DAC: Effective Communication
-(1, 11),   -- PG-DAC: Web Based Java Programming (Extra)
-(2,  1),   -- PG-DBDA: Effective Communication
-(3,  1),   -- PG-DTSS: Effective Communication
-(4,  1),   -- PG-DAI: Effective Communication
+-- =====================================================
+-- STUDENT ENROLLMENTS
+-- =====================================================
 
--- AUG_2025 batch
-(5,  1),   -- PG-DAC: Effective Communication
-(5, 11),   -- PG-DAC: Web Based Java Programming (Extra)
-(6,  1),   -- PG-DBDA: Effective Communication
-(7,  1),   -- PG-DTSS: Effective Communication
-(8,  1);   -- PG-DAI: Effective Communication
+CREATE TABLE student_enrollments (
+    enrollment_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    -- user_id references users_db.users(user_id)
+    -- NO foreign key constraint (microservices boundary)
+    user_id BIGINT NOT NULL,
+
+    batch_course_id BIGINT NOT NULL,
+
+    enrollment_date DATE
+        NOT NULL
+        DEFAULT (CURRENT_DATE),
+
+    status ENUM('ACTIVE', 'INACTIVE', 'COMPLETED')
+        NOT NULL
+        DEFAULT 'ACTIVE',
+
+    created_at TIMESTAMP
+        NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_enrollments_batch_course
+        FOREIGN KEY (batch_course_id)
+        REFERENCES batch_courses(batch_course_id)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+
+    CONSTRAINT uq_user_batch_course
+        UNIQUE (user_id, batch_course_id),
+
+    INDEX idx_user_id (user_id),
+    INDEX idx_batch_course_id (batch_course_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB;
+
+-- =====================================================
+-- FACULTY ASSIGNMENTS
+-- =====================================================
 
 CREATE TABLE faculty_assignments (
     assignment_id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
-    faculty_id BIGINT NOT NULL,
+    -- user_id references users_db.users(user_id)
+    -- NO foreign key constraint (microservices boundary)
+    user_id BIGINT NOT NULL,
 
     batch_course_subject_id BIGINT NOT NULL,
 
@@ -532,14 +531,6 @@ CREATE TABLE faculty_assignments (
     created_at TIMESTAMP
         NOT NULL
         DEFAULT CURRENT_TIMESTAMP,
-        
-	/*
-    CONSTRAINT fk_fa_faculty
-        FOREIGN KEY (faculty_id)
-        REFERENCES faculties(faculty_id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE,
-	*/
 
     CONSTRAINT fk_fa_batch_course_subject
         FOREIGN KEY (batch_course_subject_id)
@@ -548,44 +539,104 @@ CREATE TABLE faculty_assignments (
         ON UPDATE CASCADE,
 
     CONSTRAINT uq_faculty_bcs
-        UNIQUE (faculty_id, batch_course_subject_id),
+        UNIQUE (user_id, batch_course_subject_id),
 
-    INDEX idx_user_id (faculty_id),
+    INDEX idx_user_id (user_id),
     INDEX idx_batch_course_subject_id (batch_course_subject_id)
 ) ENGINE=InnoDB;
 
-INSERT INTO faculty_assignments
-(faculty_id, batch_course_subject_id)
+-- =====================================================
+-- SAMPLE DATA
+-- =====================================================
+
+INSERT INTO batches
+(batch_id, batch_name, start_date, end_date, status, description)
 VALUES
--- FEB_2025 — DAC — Effective Communication
-(2, 1), (3, 1),
+(251, 'FEB_2025', '2025-02-04', '2025-08-22', 'COMPLETED', 'February 2025 batch'),
+(252, 'AUG_2025', '2025-08-22', '2026-02-04', 'ACTIVE', 'August 2025 batch');
 
--- FEB_2025 — DAC — Web Based Java Programming
-(1, 2),
+ALTER TABLE batches AUTO_INCREMENT = 253;
 
--- FEB_2025 — DBDA — Effective Communication
-(2, 3), (3, 3),
+INSERT INTO courses
+(course_code, course_name, duration_months, status)
+VALUES
+('PG-DAC',  'PG Diploma in Advanced Computing',        6, 'ACTIVE'),
+('PG-DBDA', 'PG Diploma in Big Data Analytics',        6, 'ACTIVE'),
+('PG-DTSS', 'PG Diploma in IT Infrastructure, Systems and Security', 6, 'ACTIVE'),
+('PG-DAI',  'PG Diploma in Artificial Intelligence',  6, 'ACTIVE');
 
--- FEB_2025 — DTSS — Effective Communication
-(2, 4), (3, 4),
+INSERT INTO subjects
+(subject_code, subject_name)
+VALUES
+('COMM101', 'Effective Communication'),
+('APT101',  'Aptitude'),
+('ADS201',  'ADS Using Java'),
+('CPP101',  'C++ Programming'),
+('COS201',  'COSSDM – Concepts of Software Development Models'),
+('COS202',  'COSSDM – Git and DevOps'),
+('COS203',  'COSSDM – Software Design Models'),
+('COS204',  'COSSDM – Software Testing'),
+('DBT101',  'Database Technologies'),
+('OOP201',  'Object-Oriented Programming with Java'),
+('WEB301',  'Web Based Java Programming'),
+('WEB101',  'Web Programming Technologies');
 
--- FEB_2025 — DAI — Effective Communication
-(2, 5), (3, 5),
+INSERT INTO batch_courses
+(batch_id, course_id, start_date, end_date)
+VALUES
+-- FEB_2025 batch (batch_id = 251)
+(251, 1, '2025-02-04', '2025-08-22'), -- PG-DAC
+(251, 2, '2025-02-04', '2025-08-22'), -- PG-DBDA
+(251, 3, '2025-02-04', '2025-08-22'), -- PG-DTSS
+(251, 4, '2025-02-04', '2025-08-22'), -- PG-DAI
 
--- AUG_2025 — DAC — Effective Communication
-(2, 6), (3, 6),
+-- AUG_2025 batch (batch_id = 252)
+(252, 1, '2025-08-22', '2026-02-04'), -- PG-DAC
+(252, 2, '2025-08-22', '2026-02-04'), -- PG-DBDA
+(252, 3, '2025-08-22', '2026-02-04'), -- PG-DTSS
+(252, 4, '2025-08-22', '2026-02-04'); -- PG-DAI
 
--- AUG_2025 — DAC — Web Based Java Programming
-(1, 7),
+INSERT INTO batch_course_subjects
+(batch_course_id, subject_id)
+VALUES
+-- FEB_2025 batch
+(1,  1),   -- PG-DAC: Effective Communication
+(1, 11),   -- PG-DAC: Web Based Java Programming
+(2,  1),   -- PG-DBDA: Effective Communication
+(3,  1),   -- PG-DTSS: Effective Communication
+(4,  1),   -- PG-DAI: Effective Communication
 
--- AUG_2025 — DBDA — Effective Communication
-(2, 8), (3, 8),
+-- AUG_2025 batch
+(5,  1),   -- PG-DAC: Effective Communication
+(5, 11),   -- PG-DAC: Web Based Java Programming
+(6,  1),   -- PG-DBDA: Effective Communication
+(7,  1),   -- PG-DTSS: Effective Communication
+(8,  1);   -- PG-DAI: Effective Communication
 
--- AUG_2025 — DTSS — Effective Communication
-(2, 9), (3, 9),
+-- Student enrollments (user_ids come from users_db)
+INSERT INTO student_enrollments (user_id, batch_course_id, status)
+VALUES
+(5, 1, 'ACTIVE'), -- Aarav in FEB_2025 PG-DAC
+(6, 2, 'ACTIVE'), -- Riya in FEB_2025 PG-DBDA
+(7, 5, 'ACTIVE'); -- Kabir in AUG_2025 PG-DAC
 
--- AUG_2025 — DAI — Effective Communication
-(2, 10), (3, 10);
+-- Faculty assignments (user_ids come from users_db)
+INSERT INTO faculty_assignments
+(user_id, batch_course_subject_id, status)
+VALUES
+-- FEB_2025 assignments
+(2, 1, 'ACTIVE'), (3, 1, 'ACTIVE'), -- Faculty 2,3 for bcs_id=1
+(2, 2, 'ACTIVE'), -- Faculty 2 for bcs_id=2
+(2, 3, 'ACTIVE'), (3, 3, 'ACTIVE'),
+(2, 4, 'ACTIVE'), (3, 4, 'ACTIVE'),
+(2, 5, 'ACTIVE'), (3, 5, 'ACTIVE'),
+
+-- AUG_2025 assignments
+(2, 6, 'ACTIVE'), (3, 6, 'ACTIVE'),
+(2, 7, 'ACTIVE'),
+(2, 8, 'ACTIVE'), (3, 8, 'ACTIVE'),
+(2, 9, 'ACTIVE'), (3, 9, 'ACTIVE'),
+(2, 10, 'ACTIVE'), (3, 10, 'ACTIVE');
 
 -- =====================================================
 -- DATABASE 3 - ASSIGNMENT_DB

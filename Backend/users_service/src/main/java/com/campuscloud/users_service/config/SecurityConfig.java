@@ -14,6 +14,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.campuscloud.users_service.security.GatewayAuthenticationFilter;
+import com.campuscloud.users_service.security.GatewayOnlyAccessFilter;
 import com.campuscloud.users_service.security.RefreshCsrfFilter;
 import com.campuscloud.users_service.security.RestAccessDeniedHandler;
 import com.campuscloud.users_service.security.RestAuthEntryPoint;
@@ -25,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 	
+	private final GatewayOnlyAccessFilter gatewayOnlyAccessFilter;
 	private final GatewayAuthenticationFilter gatewayAuthenticationFilter;
 	private final RefreshCsrfFilter refreshCsrfFilter;
     
@@ -41,13 +43,18 @@ public class SecurityConfig {
 	            session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 	        )
 	        .authorizeHttpRequests(auth -> auth
+	            .requestMatchers("/actuator/**").permitAll()
 	            .requestMatchers(
 	                "/v3/api-docs/**",
 	                "/swagger-ui/**",
 	                "/swagger-ui.html"
 	            ).permitAll()
 	            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-	            .requestMatchers("/api/users/**").permitAll()
+	            .requestMatchers(
+	                "/api/users/login",
+	                "/api/users/refresh-token",
+	                "/api/users/logout"
+	            ).permitAll()
 
 	            // 🔐 admin endpoints
 	            .requestMatchers("/admin/**").authenticated()
@@ -58,6 +65,10 @@ public class SecurityConfig {
 	        .exceptionHandling(ex -> ex
 	            .authenticationEntryPoint(new RestAuthEntryPoint())
 	            .accessDeniedHandler(new RestAccessDeniedHandler())
+	        )
+	        .addFilterBefore(
+	            gatewayOnlyAccessFilter,
+	            UsernamePasswordAuthenticationFilter.class
 	        )
 	        .addFilterBefore(
 	            refreshCsrfFilter,

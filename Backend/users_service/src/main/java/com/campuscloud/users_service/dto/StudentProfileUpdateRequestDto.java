@@ -5,9 +5,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class AdminRegisterRequestDto extends BaseProfileFieldsDto {
+public class StudentProfileUpdateRequestDto extends BaseProfileFieldsDto {
 
-    // User data
-    private String username;
-    private String password;
+    private String prn;
 }

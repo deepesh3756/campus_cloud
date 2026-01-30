@@ -41,15 +41,19 @@ public class ForwardAuthHeadersGlobalFilter implements GlobalFilter, Ordered {
                 })
                 .build();
 
-        ServerWebExchange sanitizedExchange = exchange.mutate().request(sanitizedRequest).build();
-
         if (gatewayAuthSecret == null || gatewayAuthSecret.isBlank()) {
-            return chain.filter(sanitizedExchange);
+            return chain.filter(exchange.mutate().request(sanitizedRequest).build());
         }
 
-        return sanitizedExchange.getPrincipal()
-                .flatMap(principal -> addAuthHeadersIfJwt(sanitizedExchange, chain, principal))
-                .switchIfEmpty(chain.filter(sanitizedExchange));
+        ServerHttpRequest withGatewayAuth = sanitizedRequest.mutate()
+                .header(HEADER_GATEWAY_AUTH, gatewayAuthSecret)
+                .build();
+
+        ServerWebExchange baseExchange = exchange.mutate().request(withGatewayAuth).build();
+
+        return baseExchange.getPrincipal()
+                .flatMap(principal -> addAuthHeadersIfJwt(baseExchange, chain, principal))
+                .switchIfEmpty(chain.filter(baseExchange));
     }
 
     private Mono<Void> addAuthHeadersIfJwt(
@@ -76,11 +80,9 @@ public class ForwardAuthHeadersGlobalFilter implements GlobalFilter, Ordered {
 
         ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                 .headers(headers -> {
-                    headers.remove(HEADER_GATEWAY_AUTH);
                     headers.remove(HEADER_AUTH_USERNAME);
                     headers.remove(HEADER_AUTH_ROLES);
 
-                    headers.add(HEADER_GATEWAY_AUTH, gatewayAuthSecret);
                     headers.add(HEADER_AUTH_USERNAME, username);
                     if (!rolesHeader.isBlank()) {
                         headers.add(HEADER_AUTH_ROLES, rolesHeader);

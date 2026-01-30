@@ -1,9 +1,11 @@
 package com.campuscloud.users_service.dto;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class StudentRegisterRequestDto {
+@EqualsAndHashCode(callSuper = true)
+public class StudentRegisterRequestDto extends BaseProfileFieldsDto {
 
     // User data
     private String username;
@@ -11,10 +13,4 @@ public class StudentRegisterRequestDto {
 
     // Student profile data
     private String prn;          // Unique student identifier
-    private String firstName;
-    private String lastName;
-    private String email;
-    private String mobile;
-    private String gender;       // MALE | FEMALE | OTHER
-    private String profilePictureUrl;
 }

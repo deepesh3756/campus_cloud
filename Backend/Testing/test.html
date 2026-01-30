@@ -9,10 +9,17 @@
   <button onclick="login()">LOGIN</button>
   <button onclick="refresh()">REFRESH TOKEN</button>
   <button onclick="logout()">LOGOUT</button>
+  <button onclick="directLogin()">DIRECT LOGIN</button>
 
   <script>
+    // --- CONFIGURATION ---
+    // Change this once, and it updates all API calls below
+    const BASE_URL = "http://localhost:8080"; 
+    // ---------------------
+
     async function login() {
-      const res = await fetch("http://localhost:8080/api/users/login", {
+      // Using template literal: `${BASE_URL}`
+      const res = await fetch(`${BASE_URL}/api/users/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -37,15 +44,14 @@
 
     async function refresh() {
       const csrfToken = getCookie("XSRF-TOKEN");
-      //const csrfToken = "invalid_csrf_token"
-      console.log(csrfToken)
+      console.log("CSRF Token found:", csrfToken);
 
       if (!csrfToken) {
         console.error("CSRF token missing");
         return;
       }
 
-      const res = await fetch("http://localhost:8080/api/users/refresh-token", {
+      const res = await fetch(`${BASE_URL}/api/users/refresh-token`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -62,25 +68,41 @@
       console.log("REFRESH RESPONSE", data);
     }
 
-  async function logout() {
-    const csrfToken = getCookie("XSRF-TOKEN");
+    async function logout() {
+      const csrfToken = getCookie("XSRF-TOKEN");
 
-    const res = await fetch("http://localhost:8080/api/users/logout", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "X-XSRF-TOKEN": csrfToken
+      const res = await fetch(`${BASE_URL}/api/users/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "X-XSRF-TOKEN": csrfToken
+        }
+      });
+
+      if (!res.ok) {
+        console.error("LOGOUT FAILED:", res.status);
+        return;
       }
-    });
 
-    if (!res.ok) {
-      console.error("LOGOUT FAILED:", res.status);
-      return;
+      console.log("LOGOUT SUCCESS");
     }
 
-    console.log("LOGOUT SUCCESS");
-  }
+    async function directLogin() {
+      const res = await fetch(`http://localhost:8081/api/users/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          username: "admin_test_01",
+          password: "Admin@1"
+        })
+      });
 
+      const data = await res.json();
+      console.log("LOGIN RESPONSE", data);
+    }
   </script>
 </body>
 </html>
