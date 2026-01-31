@@ -9,6 +9,7 @@ const ProfilePage = () => {
       initialName={user?.name || "Student"}
       initialEmail={user?.email || ""}
       initialPhone={""}
+      nameDisabled={false}
     />
   );
 };

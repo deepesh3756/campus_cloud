@@ -5,7 +5,6 @@ const AssignmentHeroSection = ({
   shortDescription,
   description,
   dueDate,
-  points,
   status,
 }) => {
   const s = (status || "").toLowerCase();
@@ -34,19 +33,14 @@ const AssignmentHeroSection = ({
             META INFO
         ====================== */}
         <div className="row g-3 mb-4">
-          <div className="col-12 col-md-4">
+          <div className="col-12 col-md-6">
             <div className="text-muted small">Due Date</div>
             <div className="fw-medium">
               {dueDate ? formatDateTime(dueDate) : "N/A"}
             </div>
           </div>
 
-          <div className="col-12 col-md-4">
-            <div className="text-muted small">Points</div>
-            <div className="fw-medium">{points ?? "N/A"}</div>
-          </div>
-
-          <div className="col-12 col-md-4">
+          <div className="col-12 col-md-6">
             <div className="text-muted small">Status</div>
             <span className={badgeClass}>{status || "Pending"}</span>
           </div>

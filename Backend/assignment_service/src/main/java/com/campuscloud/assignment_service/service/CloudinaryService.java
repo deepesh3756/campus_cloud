@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Map;
+import org.apache.commons.io.FilenameUtils;
 
 @Service
 @Slf4j
@@ -39,9 +40,12 @@ public class CloudinaryService {
             String folder = String.format("%s/bcs_%d/assignment_%d",
                     assignmentsFolder, batchCourseSubjectId, assignmentId);
 
+            String ext = FilenameUtils.getExtension(file.getOriginalFilename());
+            boolean isPdf = ext != null && ext.equalsIgnoreCase("pdf");
+
             Map<String, Object> uploadParams = ObjectUtils.asMap(
                     "folder", folder,
-                    "resource_type", "auto",
+                    "resource_type", isPdf ? "raw" : "auto",
                     "use_filename", true,
                     "unique_filename", true,
                     "overwrite", false
@@ -80,9 +84,12 @@ public class CloudinaryService {
             String folder = String.format("%s/bcs_%d/assignment_%d/student_%d",
                     submissionsFolder, batchCourseSubjectId, assignmentId, studentId);
 
+            String ext = FilenameUtils.getExtension(file.getOriginalFilename());
+            boolean isPdf = ext != null && ext.equalsIgnoreCase("pdf");
+
             Map<String, Object> uploadParams = ObjectUtils.asMap(
                     "folder", folder,
-                    "resource_type", "auto",
+                    "resource_type", isPdf ? "raw" : "auto",
                     "use_filename", true,
                     "unique_filename", true,
                     "overwrite", true // Allow students to resubmit (overwrite previous)

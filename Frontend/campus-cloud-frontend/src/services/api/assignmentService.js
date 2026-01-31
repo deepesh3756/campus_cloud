@@ -1,13 +1,55 @@
 import api from './axios.config';
 
 export const assignmentService = {
-  getAssignments: async () => {
-    const response = await api.get('/assignments');
+  getPendingAssignments: async () => {
+    const response = await api.get('/api/assignments/student/pending');
     return response.data?.data ?? response.data;
   },
 
-  getAssignmentById: async (id) => {
-    const response = await api.get(`/assignments/${id}`);
+  getStudentSubjectAssignments: async () => {
+    const response = await api.get('/api/assignments/student');
+    return response.data?.data ?? response.data;
+  },
+
+  getStudentStatusSummary: async () => {
+    const response = await api.get('/api/assignments/student/status-summary');
+    return response.data?.data ?? response.data;
+  },
+
+  getAssignmentsBySubject: async (batchCourseSubjectId, status) => {
+    const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+    const response = await api.get(`/api/assignments/subject/${batchCourseSubjectId}${qs}`);
+    return response.data?.data ?? response.data;
+  },
+
+  getAssignmentById: async (assignmentId) => {
+    const response = await api.get(`/api/assignments/${assignmentId}`);
+    return response.data?.data ?? response.data;
+  },
+
+  getMySubmissions: async () => {
+    const response = await api.get('/api/assignments/student/my-submissions');
+    return response.data?.data ?? response.data;
+  },
+
+  getMySubmission: async (assignmentId) => {
+    const response = await api.get(`/api/assignments/${assignmentId}/my-submission`);
+    return response.data?.data ?? response.data;
+  },
+
+  submitAssignmentFile: async (assignmentId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post(`/api/assignments/${assignmentId}/submit`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data?.data ?? response.data;
+  },
+
+  getAssignments: async () => {
+    const response = await api.get('/assignments');
     return response.data?.data ?? response.data;
   },
 
@@ -53,11 +95,6 @@ export const assignmentService = {
       `/submissions/${submissionId}/evaluate`,
       evaluationData
     );
-    return response.data?.data ?? response.data;
-  },
-
-  getPendingAssignments: async () => {
-    const response = await api.get('/api/assignments/student/pending');
     return response.data?.data ?? response.data;
   },
 };

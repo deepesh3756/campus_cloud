@@ -1,30 +1,42 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { useAuth } from "../../hooks/useAuth";
-import assignmentService from "../../services/api/assignmentService";
-
-import SiteNavbar from "../../components/common/SiteNavbar";
-import SiteFooter from "../../components/common/SiteFooter";
 
 import UserWelcome from "../../components/common/UserWelcome";
 import StatsCard from "../../components/student/StatsCard";
+import userService from "../../services/api/userService";
+import assignmentService from "../../services/api/assignmentService";
 
 const HomePage = () => {
-  const { user } = useAuth();
+  const [firstName, setFirstName] = useState("");
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
-    const fetchPendingAssignments = async () => {
+    let isMounted = true;
+
+    const load = async () => {
       try {
-        const data = await assignmentService.getPendingAssignments();
-        const list = Array.isArray(data) ? data : [];
-        setPendingCount(list.length);
-      } catch (error) {
-        console.error("Failed to fetch pending assignments:", error);
+        const me = await userService.getMe();
+        if (!isMounted) return;
+        setFirstName(me?.firstName || "");
+      } catch {
+        if (!isMounted) return;
+        setFirstName("");
+      }
+
+      try {
+        const pending = await assignmentService.getPendingAssignments();
+        if (!isMounted) return;
+        setPendingCount(Array.isArray(pending) ? pending.length : 0);
+      } catch {
+        if (!isMounted) return;
+        setPendingCount(0);
       }
     };
 
-    fetchPendingAssignments();
+    load();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
@@ -34,7 +46,7 @@ const HomePage = () => {
       <main className="container py-5">
 
         {/* Welcome */}
-        <UserWelcome name={user?.firstName || "Student"} />
+        <UserWelcome name={firstName || "User"} />
 
         {/* Stats cards */}
         <div className="row g-4 mb-5">

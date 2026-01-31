@@ -1,8 +1,13 @@
 import api from './axios.config';
 
 export const userService = {
+  getMe: async () => {
+    const response = await api.get('/api/users/me');
+    return response.data?.data ?? response.data;
+  },
+
   getProfile: async () => {
-    const response = await api.get('/users/profile');
+    const response = await api.get('/api/users/me');
     return response.data?.data ?? response.data;
   },
 
@@ -49,12 +54,16 @@ export const userService = {
   },
 
   updateProfile: async (userData) => {
-    const response = await api.put('/users/profile', userData);
+    const userId = userData?.userId;
+    if (!userId) {
+      throw new Error('Missing userId for profile update');
+    }
+    const response = await api.put(`/api/users/profile/${userId}`, userData);
     return response.data?.data ?? response.data;
   },
 
   changePassword: async (passwordData) => {
-    const response = await api.post('/users/change-password', passwordData);
+    const response = await api.put('/api/users/change-password', passwordData);
     return response.data?.data ?? response.data;
   },
 };

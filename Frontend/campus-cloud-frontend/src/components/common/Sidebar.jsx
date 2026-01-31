@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   House,
   Book,
@@ -18,7 +18,7 @@ import {
 
 import { useAuth } from "../../hooks/useAuth";
 import { useFacultyData } from "../../context/FacultyContext";
-import academicService from "../../services/api/academicService";
+import assignmentService from "../../services/api/assignmentService";
 
 import "./Sidebar.css";
 
@@ -32,14 +32,7 @@ const STUDENT_MENU_ITEMS = [
     label: "Subject List",
     icon: Book,
     path: "/student/subjects",
-    children: [
-      { label: "C++", path: "/student/subjects/cpp" },
-      { label: "Database Technologies", path: "/student/subjects/dbms" },
-      { label: "OOP with Java", path: "/student/subjects/java" },
-      { label: "Algorithms & Data Structures", path: "/student/subjects/dsa" },
-      { label: "Web Programming Technologies", path: "/student/subjects/web" },
-      { label: "Microsoft .NET Technologies", path: "/student/subjects/dotnet" },
-    ],
+    children: [],
   },
 ];
 
@@ -204,90 +197,39 @@ const Sidebar = ({ menuItems: menuItemsProp }) => {
   const navigate = useNavigate();
   const { getCourses } = useFacultyData();
 
+  const [studentSubjects, setStudentSubjects] = useState([]);
+
+  useEffect(() => {
+    if (!user?.role || user.role !== "student") return;
+    if (!user?.userId) return;
+
+    let isMounted = true;
+    const load = async () => {
+      try {
+        const data = await assignmentService.getStudentSubjectAssignments();
+        if (!isMounted) return;
+        setStudentSubjects(Array.isArray(data) ? data : []);
+      } catch {
+        if (!isMounted) return;
+        setStudentSubjects([]);
+      }
+    };
+
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.role, user?.userId]);
+
   const [collapsed, setCollapsed] = useState(() => {
     const stored = localStorage.getItem("campuscloud.sidebar.collapsed");
     if (stored === null) return false;
     return stored === "true";
   });
 
-  const [studentMenuItems, setStudentMenuItems] = useState([]);
-
   useEffect(() => {
     localStorage.setItem("campuscloud.sidebar.collapsed", String(collapsed));
   }, [collapsed]);
-
-  // Fetch student subjects
-  useEffect(() => {
-    if (user?.role !== "student") return;
-
-    const fetchStudentSubjects = async () => {
-      try {
-        // Assuming getStudentEnrollments returns a list of enrolled subjects/courses
-        // You might need to adjust based on the actual API response structure
-        // Let's assume it returns objects with { subjectName, subjectId, etc. }
-        // If it returns Enrollments, we might need to map differently using academicService.getSubjectsByStudent
-        
-        // Using getSubjectsByStudent as per service definition: /api/academic/enrollments/student/{studentId}
-        const data = await academicService.getSubjectsByStudent(user.userId);
-        const subjects = Array.isArray(data) ? data : [];
-
-        // Group subjects by Course if needed, or just list them
-        // For now, let's replicate the structure: Subject List -> [Subjects]
-        
-        // However, the API endpoint getSubjectsByStudent usually returns objects that contain batchCourseSubject details
-        // We'll map them to the sidebar structure
-        
-        const subjectChildren = subjects.map(s => ({
-          label: s.subjectName || s.batchCourseSubjectCode || "Unknown Subject",
-          path: "/student/subjects", // Or specific subject page if exists
-          state: { 
-            subjectId: s.subjectId,
-            batchCourseSubjectId: s.batchCourseSubjectId,
-            batchCourseId: s.batchCourseId
-             // Pass necessary data to the route
-          } 
-        }));
-
-        const newItems = [
-          {
-            label: "Dashboard",
-            icon: House,
-            path: "/student/dashboard",
-          },
-          {
-            label: "Subject List",
-            icon: Book,
-            path: "/student/subjects",
-            children: subjectChildren.length > 0 ? subjectChildren : [
-              { label: "No Details Found", path: "#" }
-            ], 
-          },
-        ];
-        
-        setStudentMenuItems(newItems);
-
-      } catch (error) {
-        console.error("Failed to fetch student subjects:", error);
-        // Fallback or empty state
-         const fallbackItems = [
-          {
-            label: "Dashboard",
-            icon: House,
-            path: "/student/dashboard",
-          },
-          {
-            label: "Subject List",
-            icon: Book,
-            path: "/student/subjects",
-            children: [{ label: "No Subjects Found", path: "#" }],
-          },
-        ];
-        setStudentMenuItems(fallbackItems);
-      }
-    };
-
-    fetchStudentSubjects();
-  }, [user]);
 
   // Generate faculty menu items dynamically from context
   const getFacultyMenuItems = () => {
@@ -362,13 +304,39 @@ const Sidebar = ({ menuItems: menuItemsProp }) => {
     },
   ];
 
+  const studentMenuItems = useMemo(() => {
+    const base = Array.isArray(STUDENT_MENU_ITEMS) ? STUDENT_MENU_ITEMS : [];
+    const subjects = Array.isArray(studentSubjects) ? studentSubjects : [];
+
+    return base.map((item) => {
+      if (item.path !== "/student/subjects") return item;
+      return {
+        ...item,
+        children: subjects.map((s) => {
+          const label = s.subjectName || s.subjectCode || "Subject";
+          const key = s.batchCourseSubjectId ?? s.subjectId ?? s.subjectCode ?? label;
+          return {
+            label,
+            path: `/student/subjects/${encodeURIComponent(String(key))}`,
+            state: {
+              subjectName: s.subjectName,
+              subjectCode: s.subjectCode,
+              batchCourseSubjectId: s.batchCourseSubjectId,
+              subjectId: s.subjectId,
+            },
+          };
+        }),
+      };
+    });
+  }, [studentSubjects]);
+
   const menuItems =
     menuItemsProp ||
     (user?.role === "admin"
       ? adminMenuItems
       : user?.role === "faculty"
         ? getFacultyMenuItems()
-        : studentMenuItems.length > 0 ? studentMenuItems : []); // Use fetched student items or empty array
+        : studentMenuItems);
 
   return (
     <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>

@@ -80,6 +80,7 @@ public class AuthServiceImpl implements AuthService
         String fullName = userService.resolveFullName(user);
 
         return new LoginResponseDTO.UserInfo(
+			user.getUserId(),
             user.getUsername(),
             user.getRole().name(),
             fullName

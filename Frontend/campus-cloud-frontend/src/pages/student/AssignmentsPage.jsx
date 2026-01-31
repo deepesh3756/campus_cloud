@@ -1,74 +1,95 @@
-import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import UploadModal from "../../components/common/UploadModal";
 import StudentBreadcrumb from "../../components/common/StudentBreadcrumb";
-
-const SUBJECT_LABELS = {
-  cpp: "C++",
-  dbms: "Database Technologies",
-  java: "OOP with Java",
-  dsa: "Algorithms & Data Structures",
-  web: "Web Programming Technologies",
-  dotnet: "Microsoft .NET Technologies",
-};
+import { toast } from "react-toastify";
+import { assignmentService } from "../../services/api/assignmentService";
+import { validateFile } from "../../utils/fileValidator";
+import { formatDate } from "../../utils/dateFormatter";
 
 const AssignmentsPage = () => {
   const navigate = useNavigate();
   const { subjectKey } = useParams();
+  const location = useLocation();
+  const subjectNameFromState = location?.state?.subjectName;
+  const batchCourseSubjectIdFromState = location?.state?.batchCourseSubjectId;
+
+  const batchCourseSubjectId = useMemo(() => {
+    if (batchCourseSubjectIdFromState != null) return Number(batchCourseSubjectIdFromState);
+    const parsed = Number(subjectKey);
+    return Number.isFinite(parsed) ? parsed : null;
+  }, [batchCourseSubjectIdFromState, subjectKey]);
 
   const subjectTitle = useMemo(() => {
     if (!subjectKey) return "My Assignments";
-    return `${SUBJECT_LABELS[subjectKey] ?? subjectKey} Assignments`;
-  }, [subjectKey]);
+    return `${subjectNameFromState || subjectKey} Assignments`;
+  }, [subjectKey, subjectNameFromState]);
 
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [assignments, setAssignments] = useState([]);
 
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [activeAssignment, setActiveAssignment] = useState(null);
 
-  const assignments = useMemo(
-    () =>
-      // TODO: replace with API call filtered by subjectKey
-      [
-        {
-          id: "1",
-          name: "C++ Basics: Variables & Data Types",
-          createdDate: "2024-03-01",
-          dueDate: "2024-03-10",
-          status: "Submitted",
-          grade: "",
-          remarks: "NA",
-        },
-        {
-          id: "2",
-          name: "Control Structures Practice",
-          createdDate: "2024-03-05",
-          dueDate: "2024-03-14",
-          status: "Pending",
-          grade: "",
-          remarks: "NA",
-        },
-        {
-          id: "3",
-          name: "Functions & Recursion",
-          createdDate: "2024-03-10",
-          dueDate: "2024-03-20",
-          status: "Evaluated",
-          grade: "9/10",
-          remarks: "Good work",
-        },
-        {
-          id: "4",
-          name: "Object-Oriented Concepts in C++",
-          createdDate: "2024-03-15",
-          dueDate: "2024-03-25",
-          status: "Pending",
-          grade: "",
-          remarks: "NA",
-        },
-      ],
-    []
-  );
+  useEffect(() => {
+    if (!batchCourseSubjectId) {
+      setAssignments([]);
+      return;
+    }
+
+    let mounted = true;
+
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [assignmentsResp, submissionsResp] = await Promise.all([
+          assignmentService.getAssignmentsBySubject(batchCourseSubjectId),
+          assignmentService.getMySubmissions(),
+        ]);
+
+        if (!mounted) return;
+
+        const submissions = Array.isArray(submissionsResp) ? submissionsResp : [];
+        const submissionsByAssignmentId = new Map(
+          submissions
+            .filter((s) => s && s.assignmentId != null)
+            .map((s) => [Number(s.assignmentId), s])
+        );
+
+        const normalized = (Array.isArray(assignmentsResp) ? assignmentsResp : []).map((a) => {
+          const assignmentId = a?.assignmentId;
+          const sub = assignmentId != null ? submissionsByAssignmentId.get(Number(assignmentId)) : null;
+          const rawStatus = sub?.status ? String(sub.status) : "Pending";
+          const status = rawStatus === "NOT_SUBMITTED" ? "Pending" : rawStatus;
+
+          return {
+            id: assignmentId,
+            name: a?.title ?? "",
+            createdDate: a?.createdAt ?? null,
+            dueDate: a?.dueDate ?? null,
+            status,
+            grade: sub?.grade ?? "",
+            remarks: sub?.remarks ?? "NA",
+          };
+        });
+
+        setAssignments(normalized);
+      } catch (e) {
+        if (!mounted) return;
+        setError(e);
+        setAssignments([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [batchCourseSubjectId]);
 
   const openUpload = (assignment) => {
     setActiveAssignment(assignment);
@@ -90,10 +111,17 @@ const AssignmentsPage = () => {
   };
 
   const handleRowOpen = (assignmentId) => {
-    navigate(`/student/assignments/${assignmentId}`, { state: { subjectKey } });
+    navigate(`/student/assignments/${assignmentId}`, {
+      state: {
+        subjectKey,
+        subjectName: subjectNameFromState,
+        batchCourseSubjectId,
+      },
+    });
   };
 
   if (loading) return <div className="py-4">Loading...</div>;
+  if (error) return <div className="py-4">Failed to load assignments</div>;
 
   return (
     <div className="assignments-hero container-fluid">
@@ -102,7 +130,7 @@ const AssignmentsPage = () => {
           <StudentBreadcrumb
             items={[
               {
-                label: SUBJECT_LABELS[subjectKey] ?? subjectKey,
+                label: subjectNameFromState || subjectKey,
                 to: `/student/subjects?subject=${encodeURIComponent(subjectKey)}`,
               },
             ]}
@@ -159,8 +187,8 @@ const AssignmentsPage = () => {
                         {a.name}
                       </td>
 
-                      <td className="text-muted">{a.createdDate}</td>
-                      <td className="text-muted">{a.dueDate}</td>
+                      <td className="text-muted">{a.createdDate ? formatDate(a.createdDate) : ""}</td>
+                      <td className="text-muted">{a.dueDate ? formatDate(a.dueDate) : ""}</td>
 
                       <td>
                         <span className={statusBadgeClass(a.status)}>
@@ -169,11 +197,11 @@ const AssignmentsPage = () => {
                       </td>
 
                       <td className="text-muted">
-                        {a.grade || ""}
+                        {a.grade ?? ""}
                       </td>
 
                       <td className="text-muted">
-                        {a.remarks || "NA"}
+                        {a.remarks ?? "NA"}
                       </td>
 
                       <td className="text-end">
@@ -190,8 +218,7 @@ const AssignmentsPage = () => {
                           className="btn btn-primary ms-2"
                           onClick={() => openUpload(a)}
                           disabled={
-                            a.status === "Submitted" ||
-                            a.status === "Evaluated"
+                            ["submitted", "evaluated"].includes(String(a.status || "").toLowerCase())
                           }
                         >
                           <i className="bi bi-upload"></i>
@@ -215,13 +242,60 @@ const AssignmentsPage = () => {
             : "Upload"
         }
         onClose={closeUpload}
-        onSubmit={(file) => {
-          console.log(
-            "Uploading for assignment:",
-            activeAssignment?.id,
-            file
-          );
-          closeUpload();
+        maxSizeText="Maximum size: 10MB"
+        onSubmit={async (file) => {
+          const validation = validateFile(file, { maxSize: 10 * 1024 * 1024 });
+          if (!validation.isValid) {
+            toast.error(validation.error);
+            return;
+          }
+
+          const assignmentId = activeAssignment?.id;
+          if (!assignmentId) return;
+
+          try {
+            await assignmentService.submitAssignmentFile(assignmentId, file);
+            closeUpload();
+            toast.success("Assignment submitted successfully");
+
+            // Refresh list after submit
+            if (batchCourseSubjectId) {
+              setLoading(true);
+              const [assignmentsResp, submissionsResp] = await Promise.all([
+                assignmentService.getAssignmentsBySubject(batchCourseSubjectId),
+                assignmentService.getMySubmissions(),
+              ]);
+
+              const submissions = Array.isArray(submissionsResp) ? submissionsResp : [];
+              const submissionsByAssignmentId = new Map(
+                submissions
+                  .filter((s) => s && s.assignmentId != null)
+                  .map((s) => [Number(s.assignmentId), s])
+              );
+
+              const normalized = (Array.isArray(assignmentsResp) ? assignmentsResp : []).map((a) => {
+                const aid = a?.assignmentId;
+                const sub = aid != null ? submissionsByAssignmentId.get(Number(aid)) : null;
+                const rawStatus = sub?.status ? String(sub.status) : "Pending";
+                const status = rawStatus === "NOT_SUBMITTED" ? "Pending" : rawStatus;
+
+                return {
+                  id: aid,
+                  name: a?.title ?? "",
+                  createdDate: a?.createdAt ?? null,
+                  dueDate: a?.dueDate ?? null,
+                  status,
+                  grade: sub?.grade ?? "",
+                  remarks: sub?.remarks ?? "NA",
+                };
+              });
+              setAssignments(normalized);
+            }
+          } catch {
+            toast.error("Failed to submit assignment");
+          } finally {
+            setLoading(false);
+          }
         }}
       />
     </div>

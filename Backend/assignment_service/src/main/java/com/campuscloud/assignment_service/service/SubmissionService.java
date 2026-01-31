@@ -27,6 +27,11 @@ import java.util.HashMap;
 import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
+import com.campuscloud.assignment_service.dto.response.StudentSubjectAssignmentsDTO;
+import com.campuscloud.assignment_service.dto.response.StudentDashboardStatusSummaryDTO;
+import com.campuscloud.assignment_service.dto.response.StudentStatusBlockDTO;
+import com.campuscloud.assignment_service.dto.response.SubjectCountDTO;
+
 @Service
 @Slf4j
 public class SubmissionService {
@@ -48,6 +53,293 @@ public class SubmissionService {
 
     @Autowired
     private AcademicServiceClient academicServiceClient;
+
+    public List<StudentSubjectAssignmentsDTO> getStudentSubjectAssignments(Long studentUserId) {
+        log.info("Building subject-assignment matrix for student: {}", studentUserId);
+
+        ApiResponse<List<Map<String, Object>>> enrollmentResp = academicServiceClient.getStudentEnrollments(studentUserId);
+        List<Map<String, Object>> enrollments = enrollmentResp != null && enrollmentResp.isSuccess() && enrollmentResp.getData() != null
+                ? enrollmentResp.getData()
+                : List.of();
+
+        List<Long> batchCourseIds = enrollments.stream()
+                .map(e -> e.get("batchCourseId"))
+                .filter(v -> v instanceof Number)
+                .map(v -> ((Number) v).longValue())
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (batchCourseIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Map<String, Object>> bcsRows = new ArrayList<>();
+        for (Long batchCourseId : batchCourseIds) {
+            try {
+                ApiResponse<List<Map<String, Object>>> resp = academicServiceClient.getBatchCourseSubjects(batchCourseId);
+                if (resp != null && resp.isSuccess() && resp.getData() != null) {
+                    bcsRows.addAll(resp.getData());
+                }
+            } catch (Exception ex) {
+                log.warn("Failed to fetch batch-course subjects for batchCourseId={}", batchCourseId, ex);
+            }
+        }
+
+        if (bcsRows.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> bcsIds = bcsRows.stream()
+                .map(r -> r.get("batchCourseSubjectId"))
+                .filter(v -> v instanceof Number)
+                .map(v -> ((Number) v).longValue())
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (bcsIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Assignment> assignments = assignmentRepository.findByBatchCourseSubjectIdIn(bcsIds);
+        Map<Long, List<Assignment>> assignmentsByBcs = (assignments == null ? List.<Assignment>of() : assignments)
+                .stream()
+                .collect(Collectors.groupingBy(Assignment::getBatchCourseSubjectId));
+
+        List<Long> assignmentIds = (assignments == null ? List.<Assignment>of() : assignments)
+                .stream()
+                .map(Assignment::getAssignmentId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, Submission> submissionByAssignmentId = new HashMap<>();
+        if (!assignmentIds.isEmpty()) {
+            List<Submission> submissions = submissionRepository.findByStudentUserIdAndAssignmentIdIn(studentUserId, assignmentIds);
+            for (Submission s : (submissions == null ? List.<Submission>of() : submissions)) {
+                if (s != null && s.getAssignmentId() != null) {
+                    submissionByAssignmentId.put(s.getAssignmentId(), s);
+                }
+            }
+        }
+
+        List<StudentSubjectAssignmentsDTO> result = new ArrayList<>();
+        for (Map<String, Object> row : bcsRows) {
+            Object bcsIdRaw = row.get("batchCourseSubjectId");
+            if (!(bcsIdRaw instanceof Number)) continue;
+            Long bcsId = ((Number) bcsIdRaw).longValue();
+
+            String subjectCode = row.get("subjectCode") != null ? String.valueOf(row.get("subjectCode")) : null;
+            String subjectName = row.get("subjectName") != null ? String.valueOf(row.get("subjectName")) : null;
+
+            List<Assignment> subjectAssignments = assignmentsByBcs.getOrDefault(bcsId, List.of());
+
+            List<Assignment> ordered = subjectAssignments.stream()
+                    .sorted((a, b) -> {
+                        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
+                            return a.getCreatedAt().compareTo(b.getCreatedAt());
+                        }
+                        return a.getAssignmentId().compareTo(b.getAssignmentId());
+                    })
+                    .collect(Collectors.toList());
+
+            int latestKey = ordered.size();
+            List<Integer> submittedKeys = new ArrayList<>();
+            for (int i = 0; i < ordered.size(); i++) {
+                Assignment a = ordered.get(i);
+                Submission s = submissionByAssignmentId.get(a.getAssignmentId());
+                if (s != null && (s.getStatus() == Submission.SubmissionStatus.SUBMITTED || s.getStatus() == Submission.SubmissionStatus.EVALUATED)) {
+                    submittedKeys.add(i + 1);
+                }
+            }
+
+            result.add(StudentSubjectAssignmentsDTO.builder()
+                    .batchCourseSubjectId(bcsId)
+                    .subjectCode(subjectCode)
+                    .subjectName(subjectName)
+                    .latestKey(latestKey)
+                    .submittedKeys(submittedKeys)
+                    .build());
+        }
+
+        return result;
+    }
+
+    public StudentDashboardStatusSummaryDTO getStudentDashboardStatusSummary(Long studentUserId) {
+        log.info("Building dashboard status summary for student: {}", studentUserId);
+
+        ApiResponse<List<Map<String, Object>>> enrollmentResp = academicServiceClient.getStudentEnrollments(studentUserId);
+        List<Map<String, Object>> enrollments = enrollmentResp != null && enrollmentResp.isSuccess() && enrollmentResp.getData() != null
+                ? enrollmentResp.getData()
+                : List.of();
+
+        List<Long> batchCourseIds = enrollments.stream()
+                .map(e -> e.get("batchCourseId"))
+                .filter(v -> v instanceof Number)
+                .map(v -> ((Number) v).longValue())
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (batchCourseIds.isEmpty()) {
+            return StudentDashboardStatusSummaryDTO.builder()
+                    .pending(StudentStatusBlockDTO.builder().total(0L).subjects(List.of()).build())
+                    .submitted(StudentStatusBlockDTO.builder().total(0L).subjects(List.of()).build())
+                    .evaluated(StudentStatusBlockDTO.builder().total(0L).subjects(List.of()).build())
+                    .build();
+        }
+
+        List<Map<String, Object>> bcsRows = new ArrayList<>();
+        for (Long batchCourseId : batchCourseIds) {
+            try {
+                ApiResponse<List<Map<String, Object>>> resp = academicServiceClient.getBatchCourseSubjects(batchCourseId);
+                if (resp != null && resp.isSuccess() && resp.getData() != null) {
+                    bcsRows.addAll(resp.getData());
+                }
+            } catch (Exception ex) {
+                log.warn("Failed to fetch batch-course subjects for batchCourseId={}", batchCourseId, ex);
+            }
+        }
+
+        Map<Long, SubjectCountDTO> subjectMetaByBcsId = new HashMap<>();
+        for (Map<String, Object> row : bcsRows) {
+            Object bcsIdRaw = row.get("batchCourseSubjectId");
+            if (!(bcsIdRaw instanceof Number)) {
+                continue;
+            }
+            Long bcsId = ((Number) bcsIdRaw).longValue();
+            String subjectCode = row.get("subjectCode") != null ? String.valueOf(row.get("subjectCode")) : null;
+            String subjectName = row.get("subjectName") != null ? String.valueOf(row.get("subjectName")) : null;
+
+            subjectMetaByBcsId.putIfAbsent(
+                    bcsId,
+                    SubjectCountDTO.builder()
+                            .batchCourseSubjectId(bcsId)
+                            .subjectCode(subjectCode)
+                            .subjectName(subjectName)
+                            .count(0L)
+                            .build()
+            );
+        }
+
+        List<Long> bcsIds = subjectMetaByBcsId.keySet().stream().collect(Collectors.toList());
+        if (bcsIds.isEmpty()) {
+            return StudentDashboardStatusSummaryDTO.builder()
+                    .pending(StudentStatusBlockDTO.builder().total(0L).subjects(List.of()).build())
+                    .submitted(StudentStatusBlockDTO.builder().total(0L).subjects(List.of()).build())
+                    .evaluated(StudentStatusBlockDTO.builder().total(0L).subjects(List.of()).build())
+                    .build();
+        }
+
+        List<Assignment> assignments = assignmentRepository.findByBatchCourseSubjectIdIn(bcsIds);
+        List<Long> assignmentIds = (assignments == null ? List.<Assignment>of() : assignments)
+                .stream()
+                .map(Assignment::getAssignmentId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (assignmentIds.isEmpty()) {
+            return StudentDashboardStatusSummaryDTO.builder()
+                    .pending(StudentStatusBlockDTO.builder().total(0L).subjects(List.of()).build())
+                    .submitted(StudentStatusBlockDTO.builder().total(0L).subjects(List.of()).build())
+                    .evaluated(StudentStatusBlockDTO.builder().total(0L).subjects(List.of()).build())
+                    .build();
+        }
+
+        Map<Long, Long> assignmentIdToBcsId = (assignments == null ? List.<Assignment>of() : assignments)
+                .stream()
+                .filter(a -> a.getAssignmentId() != null && a.getBatchCourseSubjectId() != null)
+                .collect(Collectors.toMap(
+                        Assignment::getAssignmentId,
+                        Assignment::getBatchCourseSubjectId,
+                        (a, b) -> a
+                ));
+
+        List<Submission> submissions = submissionRepository.findByStudentUserIdAndAssignmentIdIn(studentUserId, assignmentIds);
+        List<Submission> safeSubmissions = submissions == null ? List.of() : submissions;
+
+        Map<Long, Long> pendingCounts = new HashMap<>();
+        Map<Long, Long> submittedCounts = new HashMap<>();
+        Map<Long, Long> evaluatedCounts = new HashMap<>();
+
+        for (Submission s : safeSubmissions) {
+            if (s == null || s.getAssignmentId() == null || s.getStatus() == null) {
+                continue;
+            }
+            Long bcsId = assignmentIdToBcsId.get(s.getAssignmentId());
+            if (bcsId == null) {
+                continue;
+            }
+
+            switch (s.getStatus()) {
+                case NOT_SUBMITTED -> pendingCounts.merge(bcsId, 1L, Long::sum);
+                case SUBMITTED -> submittedCounts.merge(bcsId, 1L, Long::sum);
+                case EVALUATED -> evaluatedCounts.merge(bcsId, 1L, Long::sum);
+            }
+        }
+
+        java.util.Comparator<SubjectCountDTO> subjectSort = (a, b) -> {
+            String an = a != null && a.getSubjectName() != null ? a.getSubjectName() : "";
+            String bn = b != null && b.getSubjectName() != null ? b.getSubjectName() : "";
+            int c = an.compareToIgnoreCase(bn);
+            if (c != 0) return c;
+            String ac = a != null && a.getSubjectCode() != null ? a.getSubjectCode() : "";
+            String bc = b != null && b.getSubjectCode() != null ? b.getSubjectCode() : "";
+            return ac.compareToIgnoreCase(bc);
+        };
+
+        List<SubjectCountDTO> pendingSubjects = pendingCounts.entrySet().stream()
+                .map(e -> {
+                    SubjectCountDTO meta = subjectMetaByBcsId.get(e.getKey());
+                    if (meta == null) return null;
+                    return SubjectCountDTO.builder()
+                            .batchCourseSubjectId(meta.getBatchCourseSubjectId())
+                            .subjectCode(meta.getSubjectCode())
+                            .subjectName(meta.getSubjectName())
+                            .count(e.getValue())
+                            .build();
+                })
+                .filter(v -> v != null)
+                .sorted(subjectSort)
+                .collect(Collectors.toList());
+
+        List<SubjectCountDTO> submittedSubjects = submittedCounts.entrySet().stream()
+                .map(e -> {
+                    SubjectCountDTO meta = subjectMetaByBcsId.get(e.getKey());
+                    if (meta == null) return null;
+                    return SubjectCountDTO.builder()
+                            .batchCourseSubjectId(meta.getBatchCourseSubjectId())
+                            .subjectCode(meta.getSubjectCode())
+                            .subjectName(meta.getSubjectName())
+                            .count(e.getValue())
+                            .build();
+                })
+                .filter(v -> v != null)
+                .sorted(subjectSort)
+                .collect(Collectors.toList());
+
+        List<SubjectCountDTO> evaluatedSubjects = evaluatedCounts.entrySet().stream()
+                .map(e -> {
+                    SubjectCountDTO meta = subjectMetaByBcsId.get(e.getKey());
+                    if (meta == null) return null;
+                    return SubjectCountDTO.builder()
+                            .batchCourseSubjectId(meta.getBatchCourseSubjectId())
+                            .subjectCode(meta.getSubjectCode())
+                            .subjectName(meta.getSubjectName())
+                            .count(e.getValue())
+                            .build();
+                })
+                .filter(v -> v != null)
+                .sorted(subjectSort)
+                .collect(Collectors.toList());
+
+        long pendingTotal = pendingSubjects.stream().mapToLong(SubjectCountDTO::getCount).sum();
+        long submittedTotal = submittedSubjects.stream().mapToLong(SubjectCountDTO::getCount).sum();
+        long evaluatedTotal = evaluatedSubjects.stream().mapToLong(SubjectCountDTO::getCount).sum();
+
+        return StudentDashboardStatusSummaryDTO.builder()
+                .pending(StudentStatusBlockDTO.builder().total(pendingTotal).subjects(pendingSubjects).build())
+                .submitted(StudentStatusBlockDTO.builder().total(submittedTotal).subjects(submittedSubjects).build())
+                .evaluated(StudentStatusBlockDTO.builder().total(evaluatedTotal).subjects(evaluatedSubjects).build())
+                .build();
+    }
 
     /**
      * Submit assignment (student)

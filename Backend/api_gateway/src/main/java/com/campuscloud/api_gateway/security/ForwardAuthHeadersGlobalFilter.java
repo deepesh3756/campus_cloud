@@ -27,6 +27,10 @@ public class ForwardAuthHeadersGlobalFilter implements GlobalFilter, Ordered {
     private static final String HEADER_AUTH_USERNAME = "X-Auth-Username";
     private static final String HEADER_AUTH_ROLES = "X-Auth-Roles";
 
+    private static final String HEADER_USER_ID = "X-User-Id";
+    private static final String HEADER_USERNAME = "X-Username";
+    private static final String HEADER_ROLES = "X-Roles";
+
     @Value("${gateway.auth.secret:}")
     private String gatewayAuthSecret;
 
@@ -38,6 +42,10 @@ public class ForwardAuthHeadersGlobalFilter implements GlobalFilter, Ordered {
                     headers.remove(HEADER_GATEWAY_AUTH);
                     headers.remove(HEADER_AUTH_USERNAME);
                     headers.remove(HEADER_AUTH_ROLES);
+
+                    headers.remove(HEADER_USER_ID);
+                    headers.remove(HEADER_USERNAME);
+                    headers.remove(HEADER_ROLES);
                 })
                 .build();
 
@@ -78,14 +86,29 @@ public class ForwardAuthHeadersGlobalFilter implements GlobalFilter, Ordered {
         List<String> roles = extractRoles(jwt.getClaims(), jwtAuth.getAuthorities());
         String rolesHeader = String.join(",", roles);
 
+        Object userIdClaim = jwt.getClaims().get("userId");
+        final String userIdHeader = userIdClaim != null ? String.valueOf(userIdClaim).trim() : null;
+
         ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                 .headers(headers -> {
                     headers.remove(HEADER_AUTH_USERNAME);
                     headers.remove(HEADER_AUTH_ROLES);
 
+                    headers.remove(HEADER_USER_ID);
+                    headers.remove(HEADER_USERNAME);
+                    headers.remove(HEADER_ROLES);
+
                     headers.add(HEADER_AUTH_USERNAME, username);
                     if (!rolesHeader.isBlank()) {
                         headers.add(HEADER_AUTH_ROLES, rolesHeader);
+                    }
+
+                    headers.add(HEADER_USERNAME, username);
+                    if (userIdHeader != null && !userIdHeader.isBlank()) {
+                        headers.add(HEADER_USER_ID, userIdHeader);
+                    }
+                    if (!rolesHeader.isBlank()) {
+                        headers.add(HEADER_ROLES, rolesHeader);
                     }
                 })
                 .build();

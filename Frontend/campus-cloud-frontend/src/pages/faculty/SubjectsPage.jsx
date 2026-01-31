@@ -1,41 +1,43 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useFacultyData } from "../../context/FacultyContext";
 import CourseBreadcrumb from "../../components/faculty/CourseBreadcrumb";
 
 const SubjectsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { getCourseById, loading, error } = useFacultyData();
 
-  // Get courseId from location state or use default
-  const courseId = location.state?.courseId || "pgdac";
-  const course = getCourseById(courseId);
+  const { batchId = null, batchName = null, courseCode = null, courseName = null, subjects = [] } = location.state || {};
+
+  const normalizedSubjects = useMemo(() => {
+    const list = Array.isArray(subjects) ? subjects : [];
+    return list
+      .map((s) => ({
+        batchCourseSubjectId: s?.batchCourseSubjectId,
+        subjectCode: s?.subjectCode,
+        subjectName: s?.subjectName,
+      }))
+      .filter((s) => s.batchCourseSubjectId != null);
+  }, [subjects]);
 
   const handleSubjectSelect = (subject) => {
     navigate("/faculty/assignments", {
       state: {
-        courseId: course.id,
-        courseName: course.code,
-        subjectId: subject.id,
-        subjectName: subject.name,
+        batchId,
+        batchName,
+        courseCode,
+        courseName,
+        batchCourseSubjectId: subject.batchCourseSubjectId,
+        subjectCode: subject.subjectCode,
+        subjectName: subject.subjectName,
       },
     });
   };
 
-  if (loading) {
-    return (
-      <div className="faculty-subjects-page">
-        <p>Loading subjects...</p>
-      </div>
-    );
-  }
-
-  if (error || !course) {
+  if (!courseCode) {
     return (
       <div className="faculty-subjects-page">
         <div className="alert alert-danger">
-          Error loading course data: {error || "Course not found"}
+          Error loading course data: Course not found
         </div>
       </div>
     );
@@ -44,7 +46,7 @@ const SubjectsPage = () => {
   return (
     <div className="faculty-subjects-page">
       {/* Breadcrumb Component */}
-      <CourseBreadcrumb courseName={course.code} />
+      <CourseBreadcrumb courseName={courseCode} />
 
       {/* Subject List */}
       <div className="subject-list-container">
@@ -59,16 +61,16 @@ const SubjectsPage = () => {
               </tr>
             </thead>
             <tbody>
-              {course.subjects.map((subject, index) => (
-                <tr key={subject.id}>
+              {normalizedSubjects.map((subject, index) => (
+                <tr key={subject.batchCourseSubjectId}>
                   <td>{index + 1}</td>
-                  <td>{subject.code}</td>
+                  <td>{subject.subjectCode}</td>
                   <td>
                     <button
                       className="subject-link"
                       onClick={() => handleSubjectSelect(subject)}
                     >
-                      {subject.name}
+                      {subject.subjectName}
                     </button>
                   </td>
                 </tr>

@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect } from 'react';
 import authService from '../services/api/authService';
 import { tokenService } from '../services/storage/tokenService';
+import userService from '../services/api/userService';
 
 const AuthContext = createContext(null);
 
@@ -21,9 +22,11 @@ export const AuthProvider = ({ children }) => {
       const token = tokenService.getToken();
       if (token) {
         try {
-          const userData = await authService.getCurrentUser();
-          if (userData) {
-            setUser(userData);
+          const me = await userService.getMe();
+          if (me) {
+            const normalizedUser = normalizeUser(me);
+            setUser(normalizedUser);
+            localStorage.setItem('auth_user', JSON.stringify(normalizedUser));
           }
         } catch {
           tokenService.removeToken();
@@ -37,24 +40,30 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (credentials) => {
-    console.log('🔐 Login attempt with credentials:', credentials);
-    const data = await authService.login(credentials);
-    console.log('📦 Full response from authService.login:', data);
+    const response = await authService.login(credentials);
 
-    // Backend returns: { success, message, data: { accessToken, user, ... } }
-    const { accessToken, user } = data || {};
-    console.log('🔑 Extracted accessToken:', accessToken);
-    console.log('👤 Extracted user:', user);
+    // authService.login already returns the unwrapped data: { accessToken, user, ... }
+    const { accessToken, user } = response || {};
+    
+    if (!accessToken) {
+      throw new Error('Login failed: No access token received');
+    }
     
     tokenService.setToken(accessToken);
-    const normalizedUser = normalizeUser(user);
-    console.log('✅ Normalized user:', normalizedUser);
-    
-    setUser(normalizedUser);
-    localStorage.setItem('auth_user', JSON.stringify(normalizedUser));
-    console.log('💾 User saved to localStorage and state');
 
-    return data;
+    try {
+      const me = await userService.getMe();
+      const normalizedUser = normalizeUser(me || user);
+
+      setUser(normalizedUser);
+      localStorage.setItem('auth_user', JSON.stringify(normalizedUser));
+    } catch {
+      const normalizedUser = normalizeUser(user);
+      setUser(normalizedUser);
+      localStorage.setItem('auth_user', JSON.stringify(normalizedUser));
+    }
+
+    return response;
   };
 
   const register = async (userData) => {

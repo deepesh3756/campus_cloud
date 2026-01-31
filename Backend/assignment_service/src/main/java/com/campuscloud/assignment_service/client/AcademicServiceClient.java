@@ -24,6 +24,12 @@ public interface AcademicServiceClient {
     @GetMapping("/api/academic/faculty/{facultyId}/subjects")
     ApiResponse<List<Map<String, Object>>> getFacultySubjects(@PathVariable Long facultyId);
 
+    @GetMapping("/api/academic/enrollments/student/{userId}")
+    ApiResponse<List<Map<String, Object>>> getStudentEnrollments(@PathVariable Long userId);
+
+    @GetMapping("/api/academic/batch-courses/{batchCourseId}/subjects")
+    ApiResponse<List<Map<String, Object>>> getBatchCourseSubjects(@PathVariable Long batchCourseId);
+
     @GetMapping("/api/academic/validate-faculty-subject")
     ApiResponse<Boolean> validateFacultySubject(
             @RequestParam Long facultyId,

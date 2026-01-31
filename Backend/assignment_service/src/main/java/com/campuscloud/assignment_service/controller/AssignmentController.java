@@ -32,6 +32,8 @@ import com.campuscloud.assignment_service.dto.request.CreateAssignmentRequest;
 import com.campuscloud.assignment_service.dto.request.EvaluateSubmissionRequest;
 import com.campuscloud.assignment_service.dto.response.AnalyticsDTO;
 import com.campuscloud.assignment_service.dto.response.AssignmentDTO;
+import com.campuscloud.assignment_service.dto.response.StudentDashboardStatusSummaryDTO;
+import com.campuscloud.assignment_service.dto.response.StudentSubjectAssignmentsDTO;
 import com.campuscloud.assignment_service.dto.response.SubmissionDTO;
 import com.campuscloud.assignment_service.dto.response.SubmissionWithStudentDTO;
 import com.campuscloud.assignment_service.exception.UnauthorizedException;
@@ -339,6 +341,34 @@ public class AssignmentController {
                 .getPendingSubmissionsForStudent(studentId);
         
         return ResponseEntity.ok(ApiResponse.success(pending));
+    }
+
+    /**
+     * 12b. Get Student Subjects with Assignment Keys + Submission Status (Student only)
+     * GET /api/assignments/student
+     */
+    @GetMapping("/student")
+    public ResponseEntity<ApiResponse<List<StudentSubjectAssignmentsDTO>>> getStudentSubjectAssignments(
+            HttpServletRequest httpRequest
+    ) {
+        requireAnyRole(httpRequest, "STUDENT", "ADMIN");
+        Long studentId = requireUserId(httpRequest);
+        log.info("Fetching subject assignment matrix for student: {}", studentId);
+
+        List<StudentSubjectAssignmentsDTO> data = submissionService.getStudentSubjectAssignments(studentId);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @GetMapping("/student/status-summary")
+    public ResponseEntity<ApiResponse<StudentDashboardStatusSummaryDTO>> getStudentStatusSummary(
+            HttpServletRequest httpRequest
+    ) {
+        requireAnyRole(httpRequest, "STUDENT", "ADMIN");
+        Long studentId = requireUserId(httpRequest);
+        log.info("Fetching dashboard status summary for student: {}", studentId);
+
+        StudentDashboardStatusSummaryDTO data = submissionService.getStudentDashboardStatusSummary(studentId);
+        return ResponseEntity.ok(ApiResponse.success(data));
     }
 
     /**
