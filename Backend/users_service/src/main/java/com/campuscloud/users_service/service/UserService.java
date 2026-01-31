@@ -16,7 +16,7 @@ public interface UserService {
 	
 	public void registerFaculty(FacultyRegisterRequestDto dto);
 	
-	public void registerStudent(StudentRegisterRequestDto dto);
+	public UserResponseDto registerStudent(StudentRegisterRequestDto dto);
 	
     void updateUserStatus(Long userId, Status status);
 
@@ -28,6 +28,10 @@ public interface UserService {
 
     List<UserResponseDto> registerUsersInBulk(List<BulkRegisterEntryDto> request);
     
+    List<UserResponseDto> getUsersByIds(List<Long> userIds);
+
+    List<UserResponseDto> getFacultiesByIds(List<Long> userIds);
+
     String resolveFullName(User user);
 
     void changePassword(String username, String currentPassword, String newPassword);

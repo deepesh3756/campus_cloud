@@ -61,14 +61,36 @@ public class UserController {
     
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/register/student")
-    public ResponseEntity<ApiResponse<Void>> registerStudent(
+    public ResponseEntity<ApiResponse<UserResponseDto>> registerStudent(
             @RequestBody StudentRegisterRequestDto request
     ) {
-     	userService.registerStudent(request);
+     	UserResponseDto created = userService.registerStudent(request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Student registered successfully", null));
+                .body(ApiResponse.success("Student registered successfully", created));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/check-username")
+    public ResponseEntity<ApiResponse<Boolean>> checkUsername(@RequestParam String username) {
+        if (username == null || username.isBlank()) {
+            throw new RuntimeException("username is required");
+        }
+        boolean available = userRepository.findByUsername(username.trim()).isEmpty();
+        return ResponseEntity.ok(ApiResponse.success(available));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/by-ids")
+    public ResponseEntity<ApiResponse<List<UserResponseDto>>> getUsersByIds(@RequestBody List<Long> userIds) {
+        return ResponseEntity.ok(ApiResponse.success(userService.getUsersByIds(userIds)));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/faculties/by-ids")
+    public ResponseEntity<ApiResponse<List<UserResponseDto>>> getFacultiesByIds(@RequestBody List<Long> userIds) {
+        return ResponseEntity.ok(ApiResponse.success(userService.getFacultiesByIds(userIds)));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

@@ -3,17 +3,59 @@ import api from './axios.config';
 export const userService = {
   getProfile: async () => {
     const response = await api.get('/users/profile');
-    return response.data;
+    return response.data?.data ?? response.data;
+  },
+
+  getFaculties: async () => {
+    const response = await api.get('/api/users/faculties');
+    return response.data?.data ?? response.data;
+  },
+
+  getStudents: async () => {
+    const response = await api.get('/api/users/students');
+    return response.data?.data ?? response.data;
+  },
+
+  getUserProfile: async (userId) => {
+    const response = await api.get(`/api/users/profile/${userId}`);
+    return response.data?.data ?? response.data;
+  },
+
+  updateUserProfile: async (userId, payload) => {
+    const response = await api.put(`/api/users/profile/${userId}`, payload);
+    return response.data?.data ?? response.data;
+  },
+
+  updateUserStatus: async (userId, status) => {
+    const response = await api.patch(`/api/users/${userId}/status`, { status });
+    return response.data?.data ?? response.data;
+  },
+
+  checkUsernameAvailable: async (username) => {
+    const response = await api.get('/api/users/check-username', {
+      params: { username },
+    });
+    return response.data?.data ?? response.data;
+  },
+
+  getUsersByIds: async (userIds) => {
+    const response = await api.post('/api/users/by-ids', Array.isArray(userIds) ? userIds : []);
+    return response.data?.data ?? response.data;
+  },
+
+  getFacultiesByIds: async (userIds) => {
+    const response = await api.post('/api/users/faculties/by-ids', Array.isArray(userIds) ? userIds : []);
+    return response.data?.data ?? response.data;
   },
 
   updateProfile: async (userData) => {
     const response = await api.put('/users/profile', userData);
-    return response.data;
+    return response.data?.data ?? response.data;
   },
 
   changePassword: async (passwordData) => {
     const response = await api.post('/users/change-password', passwordData);
-    return response.data;
+    return response.data?.data ?? response.data;
   },
 };
 

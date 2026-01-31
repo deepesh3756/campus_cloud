@@ -1,5 +1,6 @@
 package com.campuscloud.assignment_service.service;
 
+import com.campuscloud.assignment_service.client.AcademicServiceClient;
 import com.campuscloud.assignment_service.client.UserServiceClient;
 import com.campuscloud.assignment_service.dto.ApiResponse;
 import com.campuscloud.assignment_service.dto.request.EvaluateSubmissionRequest;
@@ -44,6 +45,9 @@ public class SubmissionService {
 
     @Autowired
     private UserServiceClient userServiceClient;
+
+    @Autowired
+    private AcademicServiceClient academicServiceClient;
 
     /**
      * Submit assignment (student)
@@ -395,7 +399,10 @@ public class SubmissionService {
                 ));
 
         // Authorization check
-        if ("STUDENT".equals(userRole)) {
+        if ("ADMIN".equals(userRole)) {
+            // Admins can download any submission
+            log.info("Admin user {} downloading submission: {}", requestingUserId, submissionId);
+        } else if ("STUDENT".equals(userRole)) {
             // Students can only download their own submissions
             if (!submission.getStudentUserId().equals(requestingUserId)) {
                 throw new UnauthorizedException(
@@ -403,15 +410,29 @@ public class SubmissionService {
                 );
             }
         } else if ("FACULTY".equals(userRole)) {
-            // Faculty can download if they own the assignment
+            // Faculty can download if they are assigned to the batch-course-subject
             Assignment assignment = assignmentRepository.findById(submission.getAssignmentId())
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Assignment not found"
                     ));
 
-            if (!assignment.getCreatedByUserId().equals(requestingUserId)) {
+            // Validate faculty is assigned to this subject
+            try {
+                ApiResponse<Boolean> response = academicServiceClient
+                        .validateFacultySubject(requestingUserId, assignment.getBatchCourseSubjectId());
+
+                if (!response.isSuccess() || !Boolean.TRUE.equals(response.getData())) {
+                    throw new UnauthorizedException(
+                            "You are not authorized to download this submission. You must be assigned to this subject."
+                    );
+                }
+            } catch (UnauthorizedException e) {
+                throw e;
+            } catch (Exception e) {
+                log.error("Failed to validate faculty assignment: faculty={}, bcs={}",
+                        requestingUserId, assignment.getBatchCourseSubjectId(), e);
                 throw new UnauthorizedException(
-                        "You are not authorized to download this submission"
+                        "Failed to validate faculty assignment: " + e.getMessage()
                 );
             }
         }

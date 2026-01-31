@@ -34,4 +34,10 @@ public interface FacultyAssignmentRepository extends JpaRepository<FacultyAssign
            "JOIN FETCH bcs.subject s " +
            "WHERE fa.userId = :facultyUserId AND fa.status = 'ACTIVE'")
     List<FacultyAssignment> findActiveFacultyAssignments(@Param("facultyUserId") Long facultyUserId);
+
+    @Query("SELECT DISTINCT fa.userId FROM FacultyAssignment fa " +
+           "JOIN fa.batchCourseSubject bcs " +
+           "JOIN bcs.batchCourse bc " +
+           "WHERE bc.batchCourseId = :batchCourseId AND fa.status = 'ACTIVE'")
+    List<Long> findActiveFacultyUserIdsByBatchCourseId(@Param("batchCourseId") Long batchCourseId);
 }

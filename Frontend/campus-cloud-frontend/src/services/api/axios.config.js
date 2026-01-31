@@ -27,8 +27,7 @@ const isAuthEndpoint = (url = '') => {
   return (
     url.includes('/api/users/login') ||
     url.includes('/api/users/refresh-token') ||
-    url.includes('/api/users/logout') ||
-    url.includes('/api/users/register')
+    url.includes('/api/users/logout')
   );
 };
 
@@ -91,19 +90,20 @@ api.interceptors.response.use(
 
         const refreshResponse = await refreshPromise;
 
-        const accessToken = refreshResponse.data?.accessToken;
+        const refreshPayload = refreshResponse.data?.data ?? refreshResponse.data;
+        const accessToken = refreshPayload?.accessToken;
         if (!accessToken) {
           throw new Error('Missing accessToken in refresh response');
         }
 
         tokenService.setToken(accessToken);
-        if (refreshResponse.data?.user) {
+        if (refreshPayload?.user) {
           const refreshedUser = {
-            ...refreshResponse.data.user,
+            ...refreshPayload.user,
             role:
-              typeof refreshResponse.data.user.role === 'string'
-                ? refreshResponse.data.user.role.toLowerCase()
-                : refreshResponse.data.user.role,
+              typeof refreshPayload.user.role === 'string'
+                ? refreshPayload.user.role.toLowerCase()
+                : refreshPayload.user.role,
           };
           localStorage.setItem('auth_user', JSON.stringify(refreshedUser));
         }

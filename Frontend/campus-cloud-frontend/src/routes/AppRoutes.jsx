@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import ProtectedRoute from './ProtectedRoute';
 import RoleBasedRoute from './RoleBasedRoute';
@@ -41,7 +41,6 @@ import SubjectDetailsPage from "../pages/admin/SubjectDetailsPage";
 import AddSubjectPage from "../pages/admin/AddSubjectPage";
 import StudentsPage from '../pages/admin/StudentsPage';
 import StudentDetailsPage from "../pages/admin/StudentDetailsPage";
-import AddStudentPage from "../pages/admin/AddStudentPage";
 import FacultyPage from '../pages/admin/FacultyPage';
 import FacultyDetailsPage from "../pages/admin/FacultyDetailsPage";
 import AddFacultyPage from "../pages/admin/AddFacultyPage";
@@ -50,6 +49,26 @@ import LandingPage from '../pages/LandingPage';
 
 import AboutPage from '../pages/AboutPage';
 import ContactPage from '../pages/ContactPage';
+
+const RedirectToStudentsAdd = () => {
+  return <Navigate to="/admin/students" replace state={{ openAddStudent: true }} />;
+};
+
+const RedirectToStudentsEdit = () => {
+  const { studentId } = useParams();
+  const parsed = Number(studentId);
+  const editUserId = Number.isFinite(parsed) && parsed > 0 ? parsed : studentId;
+  return <Navigate to="/admin/students" replace state={{ editUserId }} />;
+};
+
+const RedirectToFacultyManageAdd = () => {
+  return <Navigate to="/admin/faculty/manage/new" replace />;
+};
+
+const RedirectToFacultyManageEdit = () => {
+  const { facultyId } = useParams();
+  return <Navigate to={`/admin/faculty/manage/${facultyId}/edit`} replace />;
+};
 
 const AppRoutes = () => {
   const { user } = useAuth();
@@ -130,12 +149,15 @@ const AppRoutes = () => {
         <Route path="subjects/:subjectId/edit" element={<AddSubjectPage />} />
         <Route path="subjects/:subjectId" element={<SubjectDetailsPage />} />
         <Route path="students" element={<StudentsPage />} />
-        <Route path="students/new" element={<AddStudentPage />} />
-        <Route path="students/:studentId/edit" element={<AddStudentPage />} />
+        <Route path="students/new" element={<RedirectToStudentsAdd />} />
+        <Route path="students/:studentId/edit" element={<RedirectToStudentsEdit />} />
         <Route path="students/:studentId" element={<StudentDetailsPage />} />
         <Route path="faculty" element={<FacultyPage />} />
-        <Route path="faculty/new" element={<AddFacultyPage />} />
-        <Route path="faculty/:facultyId/edit" element={<AddFacultyPage />} />
+        <Route path="faculty/manage" element={<AddFacultyPage />} />
+        <Route path="faculty/manage/new" element={<AddFacultyPage />} />
+        <Route path="faculty/manage/:facultyId/edit" element={<AddFacultyPage />} />
+        <Route path="faculty/new" element={<RedirectToFacultyManageAdd />} />
+        <Route path="faculty/:facultyId/edit" element={<RedirectToFacultyManageEdit />} />
         <Route path="faculty/:facultyId" element={<FacultyDetailsPage />} />
         <Route path="profile" element={<AdminProfilePage />} />
       </Route>

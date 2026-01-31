@@ -79,7 +79,7 @@ public class UserServiceImpl implements UserService {
         facultyProfileService.createFacultyProfile(savedUser, dto);
     }
     
-    public void registerStudent(StudentRegisterRequestDto dto) {
+    public UserResponseDto registerStudent(StudentRegisterRequestDto dto) {
 
         // 1️⃣ Create Account
         User user = createUser(
@@ -93,6 +93,8 @@ public class UserServiceImpl implements UserService {
 
         // 3️⃣ Create Student profile
         studentProfileService.createStudentProfile(savedUser, dto);
+
+        return toUserResponseDto(savedUser);
     }
     
     @Override
@@ -175,6 +177,36 @@ public class UserServiceImpl implements UserService {
     public List<UserResponseDto> getAllStudents() {
         return userRepository.findByRole(Role.STUDENT)
                 .stream()
+                .map(this::toUserResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserResponseDto> getUsersByIds(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+
+        return userRepository.findAllById(userIds)
+                .stream()
+                .filter(u -> u.getRole() == Role.STUDENT)
+                .filter(u -> u.getStatus() == Status.ACTIVE)
+                .map(this::toUserResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserResponseDto> getFacultiesByIds(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+
+        return userRepository.findAllById(userIds)
+                .stream()
+                .filter(u -> u.getRole() == Role.FACULTY)
+                .filter(u -> u.getStatus() == Status.ACTIVE)
                 .map(this::toUserResponseDto)
                 .collect(Collectors.toList());
     }
@@ -283,8 +315,8 @@ public class UserServiceImpl implements UserService {
             }
             case "STUDENT" -> {
                 StudentRegisterRequestDto dto = objectMapper.convertValue(entry.getData(), StudentRegisterRequestDto.class);
-                registerStudent(dto);
-                return toUserResponseDto(findByUsernameOrThrow(dto.getUsername()));
+                UserResponseDto created = registerStudent(dto);
+                return created;
             }
             default -> throw new RuntimeException("Unsupported role in bulk registration: " + entry.getRole());
         }

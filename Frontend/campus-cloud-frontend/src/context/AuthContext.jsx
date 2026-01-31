@@ -37,12 +37,24 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (credentials) => {
-    const response = await authService.login(credentials);
-    tokenService.setToken(response.accessToken);
-    const normalizedUser = normalizeUser(response.user);
+    console.log('🔐 Login attempt with credentials:', credentials);
+    const data = await authService.login(credentials);
+    console.log('📦 Full response from authService.login:', data);
+
+    // Backend returns: { success, message, data: { accessToken, user, ... } }
+    const { accessToken, user } = data || {};
+    console.log('🔑 Extracted accessToken:', accessToken);
+    console.log('👤 Extracted user:', user);
+    
+    tokenService.setToken(accessToken);
+    const normalizedUser = normalizeUser(user);
+    console.log('✅ Normalized user:', normalizedUser);
+    
     setUser(normalizedUser);
     localStorage.setItem('auth_user', JSON.stringify(normalizedUser));
-    return response;
+    console.log('💾 User saved to localStorage and state');
+
+    return data;
   };
 
   const register = async (userData) => {

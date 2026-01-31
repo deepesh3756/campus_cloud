@@ -83,7 +83,7 @@ public class AssignmentController {
             @RequestPart(value = "file", required = false) MultipartFile file,
             HttpServletRequest httpRequest
     ) {
-        requireRole(httpRequest, "FACULTY");
+        requireAnyRole(httpRequest, "FACULTY", "ADMIN");
         Long facultyId = requireUserId(httpRequest);
 
         if ((assignmentJson == null || assignmentJson.trim().isEmpty())
@@ -123,7 +123,7 @@ public class AssignmentController {
      * GET /api/assignments/subject/{batchCourseSubjectId}
      */
     @GetMapping("/subject/{batchCourseSubjectId}")
-//    @PreAuthorize("hasAnyRole('STUDENT', 'FACULTY')")
+//    @PreAuthorize("hasAnyRole('STUDENT', 'FACULTY','ADMIN')")
     public ResponseEntity<ApiResponse<List<AssignmentDTO>>> getAssignmentsBySubject(
             @PathVariable Long batchCourseSubjectId,
             @RequestParam(required = false) String status,
@@ -131,7 +131,7 @@ public class AssignmentController {
     ) {
         log.info("Fetching assignments for BCS: {}", batchCourseSubjectId);
 
-        requireAnyRole(httpRequest, "STUDENT", "FACULTY");
+        requireAnyRole(httpRequest, "STUDENT", "FACULTY", "ADMIN");
         
         List<AssignmentDTO> assignments = assignmentService
                 .getAssignmentsBySubject(batchCourseSubjectId, status);
@@ -144,14 +144,14 @@ public class AssignmentController {
      * GET /api/assignments/{assignmentId}
      */
     @GetMapping("/{assignmentId}")
-//    @PreAuthorize("hasAnyRole('STUDENT', 'FACULTY')")
+//    @PreAuthorize("hasAnyRole('STUDENT', 'FACULTY','ADMIN')")
     public ResponseEntity<ApiResponse<AssignmentDTO>> getAssignmentById(
             @PathVariable Long assignmentId,
             HttpServletRequest httpRequest
     ) {
         log.info("Fetching assignment: {}", assignmentId);
 
-        requireAnyRole(httpRequest, "STUDENT", "FACULTY");
+        requireAnyRole(httpRequest, "STUDENT", "FACULTY", "ADMIN");
         
         AssignmentDTO assignment = assignmentService.getAssignmentById(assignmentId);
         
@@ -171,7 +171,7 @@ public class AssignmentController {
     ) {
         log.info("Fetching submissions for assignment: {}", assignmentId);
 
-        requireRole(httpRequest, "FACULTY");
+        requireAnyRole(httpRequest, "FACULTY", "ADMIN");
         
         List<SubmissionWithStudentDTO> submissions = submissionService
                 .getSubmissionsForAssignment(assignmentId, status);
@@ -192,7 +192,7 @@ public class AssignmentController {
     ) {
         log.info("Evaluating submission: {}", submissionId);
 
-        requireRole(httpRequest, "FACULTY");
+        requireAnyRole(httpRequest, "FACULTY", "ADMIN");
         Long facultyId = requireUserId(httpRequest);
         SubmissionDTO submission = submissionService
                 .evaluateSubmission(submissionId, request, facultyId);
@@ -212,7 +212,7 @@ public class AssignmentController {
     ) {
         log.info("Fetching analytics for assignment: {}", assignmentId);
 
-        requireRole(httpRequest, "FACULTY");
+        requireAnyRole(httpRequest, "FACULTY", "ADMIN");
         
         AnalyticsDTO analytics = analyticsService.getAssignmentAnalytics(assignmentId);
         
@@ -228,7 +228,7 @@ public class AssignmentController {
     public ResponseEntity<ApiResponse<AnalyticsService.FacultyStatistics>> getFacultyStatistics(
             HttpServletRequest httpRequest
     ) {
-        requireRole(httpRequest, "FACULTY");
+        requireAnyRole(httpRequest, "FACULTY", "ADMIN");
         Long facultyId = requireUserId(httpRequest);
         log.info("Fetching statistics for faculty: {}", facultyId);
         
@@ -251,7 +251,7 @@ public class AssignmentController {
     ) {
         log.info("Updating assignment {} status to: {}", assignmentId, status);
 
-        requireRole(httpRequest, "FACULTY");
+        requireAnyRole(httpRequest, "FACULTY", "ADMIN");
         Long facultyId = requireUserId(httpRequest);
         AssignmentDTO assignment = assignmentService
                 .updateAssignmentStatus(assignmentId, status, facultyId);
@@ -271,7 +271,7 @@ public class AssignmentController {
     ) {
         log.info("Deleting assignment: {}", assignmentId);
 
-        requireRole(httpRequest, "FACULTY");
+        requireAnyRole(httpRequest, "FACULTY", "ADMIN");
         Long facultyId = requireUserId(httpRequest);
         assignmentService.deleteAssignment(assignmentId, facultyId);
         
@@ -293,7 +293,7 @@ public class AssignmentController {
     ) {
         log.info("Student submitting assignment: {}", assignmentId);
 
-        requireRole(httpRequest, "STUDENT");
+        requireAnyRole(httpRequest, "STUDENT", "ADMIN");
         Long studentId = requireUserId(httpRequest);
         SubmissionDTO submission = submissionService.submitAssignment(assignmentId, file, studentId);
         
@@ -312,7 +312,7 @@ public class AssignmentController {
             @PathVariable Long assignmentId,
             HttpServletRequest httpRequest
     ) {
-        requireRole(httpRequest, "STUDENT");
+        requireAnyRole(httpRequest, "STUDENT", "ADMIN");
         Long studentId = requireUserId(httpRequest);
         log.info("Fetching submission for assignment: {}, student: {}", assignmentId, studentId);
         
@@ -331,7 +331,7 @@ public class AssignmentController {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getPendingAssignments(
             HttpServletRequest httpRequest
     ) {
-        requireRole(httpRequest, "STUDENT");
+        requireAnyRole(httpRequest, "STUDENT", "ADMIN");
         Long studentId = requireUserId(httpRequest);
         log.info("Fetching pending assignments for student: {}", studentId);
         
@@ -350,7 +350,7 @@ public class AssignmentController {
     public ResponseEntity<ApiResponse<List<SubmissionDTO>>> getMySubmissions(
             HttpServletRequest httpRequest
     ) {
-        requireRole(httpRequest, "STUDENT");
+        requireAnyRole(httpRequest, "STUDENT", "ADMIN");
         Long studentId = requireUserId(httpRequest);
         log.info("Fetching all submissions for student: {}", studentId);
         
@@ -370,7 +370,7 @@ public class AssignmentController {
             @PathVariable Long submissionId,
             HttpServletRequest httpRequest
     ) {
-        requireRole(httpRequest, "STUDENT");
+        requireAnyRole(httpRequest, "STUDENT", "ADMIN");
         Long studentId = requireUserId(httpRequest);
         log.info("Student {} deleting submission: {}", studentId, submissionId);
         
@@ -391,7 +391,7 @@ public class AssignmentController {
             @PathVariable Long submissionId,
             HttpServletRequest httpRequest
     ) {
-        requireAnyRole(httpRequest, "STUDENT", "FACULTY");
+        requireAnyRole(httpRequest, "STUDENT", "FACULTY", "ADMIN");
         Long userId = requireUserId(httpRequest);
         String role = requirePrimaryRole(httpRequest);
         log.info("User {} ({}) downloading submission: {}", userId, role, submissionId);

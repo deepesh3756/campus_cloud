@@ -1,60 +1,121 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Pencil, Trash2, User } from "lucide-react";
 import AdminBreadcrumb from "../../components/common/AdminBreadcrumb";
+import ConfirmDeleteModal from "../../components/common/ConfirmDeleteModal";
+import academicService from "../../services/api/academicService";
+import userService from "../../services/api/userService";
+import { toast } from "react-toastify";
 
 const FacultyDetailsPage = () => {
   const navigate = useNavigate();
   const { facultyId } = useParams();
 
-  const faculties = useMemo(
-    () => [
-      {
-        id: "123456789012",
-        code: "FAC0025",
-        firstName: "John",
-        lastName: "Doe",
-        email: "john.doe@example.com",
-        mobile: "9876543210",
-        gender: "Male",
-        batches: ["August-2025", "February-2026"],
-        courses: ["PG-DBDA", "PG-DVLSI"],
-        status: "Active",
-      },
-      {
-        id: "234567890123",
-        code: "FAC0031",
-        firstName: "Jane",
-        lastName: "Smith",
-        email: "jane.smith@example.com",
-        mobile: "8765432109",
-        gender: "Female",
-        batches: ["August-2025"],
-        courses: ["PG-DAC"],
-        status: "Inactive",
-      },
-    ],
-    []
-  );
+  const parsedUserId = useMemo(() => {
+    const n = Number(facultyId);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }, [facultyId]);
 
-  const faculty = faculties.find((f) => f.id === facultyId) || null;
+  const [profile, setProfile] = useState(null);
+  const [assignments, setAssignments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!parsedUserId) return;
+    let isMounted = true;
+
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [p, a] = await Promise.all([
+          userService.getUserProfile(parsedUserId),
+          academicService.getSubjectsByFaculty(parsedUserId),
+        ]);
+        if (!isMounted) return;
+        setProfile(p);
+        setAssignments(Array.isArray(a) ? a : []);
+      } catch (err) {
+        if (!isMounted) return;
+        setError(err?.response?.data?.message || err?.message || "Failed to load faculty details");
+        setProfile(null);
+        setAssignments([]);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [parsedUserId]);
+
+  const batches = useMemo(() => {
+    const set = new Set(
+      (Array.isArray(assignments) ? assignments : [])
+        .map((a) => a.batchName)
+        .filter(Boolean)
+    );
+    return Array.from(set);
+  }, [assignments]);
+
+  const courses = useMemo(() => {
+    const set = new Set(
+      (Array.isArray(assignments) ? assignments : [])
+        .map((a) => a.courseCode)
+        .filter(Boolean)
+    );
+    return Array.from(set);
+  }, [assignments]);
 
   const breadcrumbItems = useMemo(() => {
-    const label = faculty ? `${faculty.firstName} ${faculty.lastName}` : "Faculty";
-    return [{ label: "Faculty", to: "/admin/faculty" }, { label }];
-  }, [faculty]);
+    const label = profile ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim() : "Faculty";
+    return [{ label: "Faculty", to: "/admin/faculty/manage" }, { label }];
+  }, [profile]);
 
-  const handleDelete = () => {
-    const ok = window.confirm("Are you sure you want to delete this faculty?");
-    if (!ok) return;
-    navigate("/admin/faculty");
+  const handleDelete = async () => {
+    if (!parsedUserId) return;
+    setDeleting(true);
+    try {
+      await userService.updateUserStatus(parsedUserId, "INACTIVE");
+      toast.success("Faculty marked as INACTIVE", { autoClose: 2500 });
+      navigate("/admin/faculty/manage");
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || "Failed to delete faculty", { autoClose: 3500 });
+    } finally {
+      setDeleting(false);
+      setIsDeleteOpen(false);
+    }
   };
 
-  if (!faculty) {
+  if (!parsedUserId) {
     return (
       <div className="faculty-details-page">
-        <AdminBreadcrumb items={[{ label: "Faculty", to: "/admin/faculty" }, { label: "Faculty" }]} />
-        <div className="text-secondary">Faculty not found.</div>
+        <AdminBreadcrumb items={[{ label: "Faculty", to: "/admin/faculty/manage" }, { label: "Faculty" }]} />
+        <div className="text-secondary">Invalid faculty id.</div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="faculty-details-page">
+        <AdminBreadcrumb items={[{ label: "Faculty", to: "/admin/faculty/manage" }, { label: "Faculty" }]} />
+        <div className="text-secondary">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="faculty-details-page">
+        <AdminBreadcrumb items={[{ label: "Faculty", to: "/admin/faculty/manage" }, { label: "Faculty" }]} />
+        <div className="text-secondary">{error || "Faculty not found."}</div>
       </div>
     );
   }
@@ -62,6 +123,16 @@ const FacultyDetailsPage = () => {
   return (
     <div className="faculty-details-page">
       <AdminBreadcrumb items={breadcrumbItems} />
+
+      <ConfirmDeleteModal
+        isOpen={isDeleteOpen}
+        title="Delete Faculty"
+        message="Are you sure you want to delete this faculty? This will mark the faculty as INACTIVE."
+        confirmText="Yes, Delete"
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setIsDeleteOpen(false)}
+      />
 
       <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
         <h4 className="fw-bold mb-0">Faculty details</h4>
@@ -78,7 +149,7 @@ const FacultyDetailsPage = () => {
           <button
             type="button"
             className="btn btn-danger d-inline-flex align-items-center gap-2"
-            onClick={handleDelete}
+            onClick={() => setIsDeleteOpen(true)}
           >
             <Trash2 size={16} />
             Delete Faculty
@@ -96,7 +167,7 @@ const FacultyDetailsPage = () => {
                 <div className="text-secondary" style={{ fontSize: 12 }}>
                   Faculty code
                 </div>
-                <div className="fw-semibold">{faculty.code}</div>
+                <div className="fw-semibold">{profile.userId}</div>
               </div>
 
               <div className="mb-3">
@@ -104,7 +175,7 @@ const FacultyDetailsPage = () => {
                   Faculty Full Name
                 </div>
                 <div className="fw-semibold">
-                  {faculty.firstName} {faculty.lastName}
+                  {profile.firstName} {profile.lastName}
                 </div>
               </div>
 
@@ -113,39 +184,33 @@ const FacultyDetailsPage = () => {
                   <div className="text-secondary" style={{ fontSize: 12 }}>
                     Email
                   </div>
-                  <div className="fw-semibold">{faculty.email}</div>
+                  <div className="fw-semibold">{profile.email}</div>
                 </div>
                 <div className="col-12 col-md-6">
                   <div className="text-secondary" style={{ fontSize: 12 }}>
                     Batch(s)
                   </div>
-                  <div className="fw-semibold">{faculty.batches.join(", ")}</div>
+                  <div className="fw-semibold">{batches.join(", ") || "-"}</div>
                 </div>
 
                 <div className="col-12 col-md-6">
                   <div className="text-secondary" style={{ fontSize: 12 }}>
                     Mobile
                   </div>
-                  <div className="fw-semibold">{faculty.mobile}</div>
+                  <div className="fw-semibold">{profile.mobile}</div>
                 </div>
                 <div className="col-12 col-md-6">
                   <div className="text-secondary" style={{ fontSize: 12 }}>
                     Course
                   </div>
-                  <div className="fw-semibold">{faculty.courses.join(", ")}</div>
+                  <div className="fw-semibold">{courses.join(", ") || "-"}</div>
                 </div>
 
                 <div className="col-12 col-md-6">
                   <div className="text-secondary" style={{ fontSize: 12 }}>
                     Gender
                   </div>
-                  <div className="fw-semibold">{faculty.gender}</div>
-                </div>
-                <div className="col-12 col-md-6">
-                  <div className="text-secondary" style={{ fontSize: 12 }}>
-                    Password
-                  </div>
-                  <div className="fw-semibold">********</div>
+                  <div className="fw-semibold">{profile.gender}</div>
                 </div>
               </div>
             </div>
@@ -154,7 +219,15 @@ const FacultyDetailsPage = () => {
               className="d-flex align-items-center justify-content-center border"
               style={{ width: 140, height: 110, borderRadius: 12, background: "#f3f4f6" }}
             >
-              <User size={36} className="text-secondary" />
+              {profile.profilePictureUrl ? (
+                <img
+                  src={profile.profilePictureUrl}
+                  alt="profile"
+                  style={{ width: 110, height: 110, objectFit: "cover", borderRadius: 12 }}
+                />
+              ) : (
+                <User size={36} className="text-secondary" />
+              )}
             </div>
           </div>
         </div>

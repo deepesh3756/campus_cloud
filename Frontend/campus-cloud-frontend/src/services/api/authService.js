@@ -3,17 +3,17 @@ import api from './axios.config';
 export const authService = {
   login: async (credentials) => {
     const response = await api.post('/api/users/login', credentials);
-    return response.data;
+    return response.data?.data ?? response.data;
   },
 
   registerStudent: async (payload) => {
     const response = await api.post('/api/users/register/student', payload);
-    return response.data;
+    return response.data?.data ?? response.data;
   },
 
   registerFaculty: async (payload) => {
     const response = await api.post('/api/users/register/faculty', payload);
-    return response.data;
+    return response.data?.data ?? response.data;
   },
 
   register: async (userData) => {
@@ -26,12 +26,12 @@ export const authService = {
           : '/api/users/register/student';
 
     const response = await api.post(endpoint, userData);
-    return response.data;
+    return response.data?.data ?? response.data;
   },
 
   logout: async () => {
     const response = await api.post('/api/users/logout', {});
-    return response.data;
+    return response.data?.data ?? response.data;
   },
 
   getCurrentUser: async () => {

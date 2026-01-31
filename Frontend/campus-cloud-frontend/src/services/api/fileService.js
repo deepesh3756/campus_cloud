@@ -10,7 +10,7 @@ export const fileService = {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data;
+    return response.data?.data ?? response.data;
   },
 
   downloadFile: async (fileId) => {
@@ -22,7 +22,7 @@ export const fileService = {
 
   deleteFile: async (fileId) => {
     const response = await api.delete(`/files/${fileId}`);
-    return response.data;
+    return response.data?.data ?? response.data;
   },
 };
 

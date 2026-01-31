@@ -606,7 +606,7 @@ const SubjectsPage = () => {
               onClick={() => navigate("/admin/subjects/new")}
             >
               <Plus size={18} />
-              Add Subject
+              Add New Subject
             </button>
           </div>
 
