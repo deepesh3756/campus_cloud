@@ -26,6 +26,7 @@ const SubjectsPage = () => {
         batchName,
         courseCode,
         courseName,
+        subjects,
         batchCourseSubjectId: subject.batchCourseSubjectId,
         subjectCode: subject.subjectCode,
         subjectName: subject.subjectName,
@@ -46,7 +47,7 @@ const SubjectsPage = () => {
   return (
     <div className="faculty-subjects-page">
       {/* Breadcrumb Component */}
-      <CourseBreadcrumb courseName={courseCode} />
+      <CourseBreadcrumb batchId={batchId} batchName={batchName} courseName={courseName} state={location.state} />
 
       {/* Subject List */}
       <div className="subject-list-container">

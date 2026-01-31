@@ -577,8 +577,21 @@ public class SubmissionService {
                     userServiceClient.getBulkUserDetails(studentIds);
 
             if (response.isSuccess() && response.getData() != null) {
+                if (!response.getData().isEmpty()) {
+                    Map<String, Object> first = response.getData().get(0);
+                    log.info("users-service bulk user details keys sample: {}", first == null ? null : first.keySet());
+                }
                 response.getData().forEach(user -> {
-                    Long userId = ((Number) user.get("userId")).longValue();
+                    if (user == null) {
+                        return;
+                    }
+
+                    Object rawUserId = firstNonNull(user.get("userId"), user.get("id"), user.get("user_id"));
+                    Long userId = asLong(rawUserId);
+                    if (userId == null) {
+                        return;
+                    }
+
                     studentDetailsMap.put(userId, user);
                 });
             } else {
@@ -594,6 +607,36 @@ public class SubmissionService {
                     Map<String, Object> studentDetails =
                             studentDetailsMap.get(submission.getStudentUserId());
 
+                    String firstName = null;
+                    String lastName = null;
+                    String prn = null;
+                    String email = null;
+                    if (studentDetails != null) {
+                        firstName = asString(firstNonNull(
+                                studentDetails.get("firstName"),
+                                studentDetails.get("first_name"),
+                                studentDetails.get("firstname")
+                        ));
+                        lastName = asString(firstNonNull(
+                                studentDetails.get("lastName"),
+                                studentDetails.get("last_name"),
+                                studentDetails.get("lastname")
+                        ));
+                        prn = asString(firstNonNull(
+                                studentDetails.get("prn"),
+                                studentDetails.get("PRN"),
+                                studentDetails.get("studentPrn"),
+                                studentDetails.get("student_prn")
+                        ));
+                        email = asString(firstNonNull(studentDetails.get("email"), studentDetails.get("mail")));
+                    }
+
+                    String fullName = null;
+                    if ((firstName != null && !firstName.isBlank()) || (lastName != null && !lastName.isBlank())) {
+                        fullName = String.format("%s %s", firstName == null ? "" : firstName, lastName == null ? "" : lastName)
+                                .trim();
+                    }
+
                     return SubmissionWithStudentDTO.builder()
                             .submissionId(submission.getSubmissionId())
                             .assignmentId(submission.getAssignmentId())
@@ -607,18 +650,50 @@ public class SubmissionService {
                             .submittedAt(submission.getSubmittedAt())
                             .status(submission.getStatus().name())
                             // Student details
-                            .studentName(studentDetails != null
-                                    ? studentDetails.get("firstName") + " " + studentDetails.get("lastName")
-                                    : "Unknown")
-                            .studentEmail(studentDetails != null
-                                    ? (String) studentDetails.get("email")
-                                    : null)
-                            .studentPrn(studentDetails != null
-                                    ? (String) studentDetails.get("prn")
-                                    : null)
+                            .studentName(fullName != null && !fullName.isBlank() ? fullName : "Unknown")
+                            .studentEmail(email)
+                            .studentPrn(prn)
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    private static Object firstNonNull(Object... values) {
+        if (values == null) {
+            return null;
+        }
+        for (Object v : values) {
+            if (v != null) {
+                return v;
+            }
+        }
+        return null;
+    }
+
+    private static Long asLong(Object v) {
+        if (v == null) {
+            return null;
+        }
+        if (v instanceof Number n) {
+            return n.longValue();
+        }
+        try {
+            String s = v.toString().trim();
+            if (s.isEmpty()) {
+                return null;
+            }
+            return Long.parseLong(s);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static String asString(Object v) {
+        if (v == null) {
+            return null;
+        }
+        String s = v.toString();
+        return s == null ? null : s.trim();
     }
 
     /**

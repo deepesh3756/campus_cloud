@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -118,6 +119,51 @@ public class AssignmentController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Assignment created successfully", assignment));
+    }
+
+    /**
+     * 1b. Update Assignment (Faculty only)
+     * PUT /api/assignments/{assignmentId}
+     */
+    @PutMapping(value = "/{assignmentId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<AssignmentDTO>> updateAssignment(
+            @PathVariable Long assignmentId,
+            @RequestPart(value = "assignment", required = false) String assignmentJson,
+            @RequestParam(value = "assignment", required = false) String assignmentParam,
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            HttpServletRequest httpRequest
+    ) {
+        requireAnyRole(httpRequest, "FACULTY", "ADMIN");
+        Long facultyId = requireUserId(httpRequest);
+
+        if ((assignmentJson == null || assignmentJson.trim().isEmpty())
+                && (assignmentParam != null && !assignmentParam.trim().isEmpty())) {
+            assignmentJson = assignmentParam;
+        }
+
+        if (assignmentJson == null || assignmentJson.trim().isEmpty()) {
+            throw new IllegalArgumentException("Missing required part: assignment");
+        }
+
+        final CreateAssignmentRequest request;
+        try {
+            request = objectMapper.readValue(assignmentJson, CreateAssignmentRequest.class);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid assignment JSON");
+        }
+
+        var violations = validator.validate(request);
+        if (!violations.isEmpty()) {
+            String message = violations.stream()
+                    .map(ConstraintViolation::getMessage)
+                    .collect(Collectors.joining(", "));
+            throw new IllegalArgumentException(message);
+        }
+
+        log.info("Updating assignment: {}", assignmentId);
+        AssignmentDTO updated = assignmentService.updateAssignment(assignmentId, request, file, facultyId);
+
+        return ResponseEntity.ok(ApiResponse.success("Assignment updated successfully", updated));
     }
 
     /**

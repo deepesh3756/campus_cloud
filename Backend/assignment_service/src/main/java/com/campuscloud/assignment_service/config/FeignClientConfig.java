@@ -3,6 +3,7 @@ package com.campuscloud.assignment_service.config;
 import feign.RequestInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -15,10 +16,21 @@ public class FeignClientConfig {
     private static final String HEADER_USERNAME_ALT = "X-User-Name";
     private static final String HEADER_ROLES = "X-Roles";
     private static final String HEADER_ROLE = "X-Role";
+    private static final String HEADER_GATEWAY_AUTH = "X-Gateway-Auth";
+
+    private static final String HEADER_AUTH_USERNAME = "X-Auth-Username";
+    private static final String HEADER_AUTH_ROLES = "X-Auth-Roles";
+
+    @Value("${gateway.auth.secret:}")
+    private String gatewayAuthSecret;
 
     @Bean
     public RequestInterceptor requestInterceptor() {
         return requestTemplate -> {
+            if (gatewayAuthSecret != null && !gatewayAuthSecret.isBlank()) {
+                requestTemplate.header(HEADER_GATEWAY_AUTH, gatewayAuthSecret);
+            }
+
             ServletRequestAttributes attributes = 
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             
@@ -44,6 +56,20 @@ public class FeignClientConfig {
                 if (roles != null) {
                     requestTemplate.header(HEADER_ROLES, roles);
                 }
+
+                // users_service expects gateway-authenticated identity headers
+                // when X-Gateway-Auth is present
+                String authUsername = username != null ? username : userId;
+                if (authUsername != null && !authUsername.trim().isEmpty()) {
+                    requestTemplate.header(HEADER_AUTH_USERNAME, authUsername.trim());
+                }
+
+                String authRoles = roles;
+                if (authRoles == null || authRoles.trim().isEmpty()) {
+                    // Safe fallback for faculty endpoints in assignment_service
+                    authRoles = "FACULTY";
+                }
+                requestTemplate.header(HEADER_AUTH_ROLES, authRoles.trim());
             }
         };
     }

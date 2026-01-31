@@ -49,27 +49,35 @@ export const assignmentService = {
   },
 
   getAssignments: async () => {
-    const response = await api.get('/assignments');
+    const response = await api.get('/api/assignments');
     return response.data?.data ?? response.data;
   },
 
   createAssignment: async (assignmentData) => {
-    const response = await api.post('/assignments', assignmentData);
+    const response = await api.post('/api/assignments', assignmentData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data?.data ?? response.data;
   },
 
   updateAssignment: async (id, assignmentData) => {
-    const response = await api.put(`/assignments/${id}`, assignmentData);
+    const response = await api.put(`/api/assignments/${id}`, assignmentData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data?.data ?? response.data;
   },
 
   deleteAssignment: async (id) => {
-    const response = await api.delete(`/assignments/${id}`);
+    const response = await api.delete(`/api/assignments/${id}`);
     return response.data?.data ?? response.data;
   },
 
   getSubmissions: async (assignmentId) => {
-    const response = await api.get(`/assignments/${assignmentId}/submissions`);
+    const response = await api.get(`/api/assignments/${assignmentId}/submissions`);
     return response.data?.data ?? response.data;
   },
 
@@ -78,23 +86,26 @@ export const assignmentService = {
     formData.append('file', submissionData.file);
     formData.append('comment', submissionData.comment);
 
-    const response = await api.post(
-      `/assignments/${assignmentId}/submissions`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
+    const response = await api.post(`/api/assignments/${assignmentId}/submit`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data?.data ?? response.data;
   },
 
   evaluateSubmission: async (submissionId, evaluationData) => {
-    const response = await api.post(
-      `/submissions/${submissionId}/evaluate`,
-      evaluationData
-    );
+    const response = await api.post(`/api/assignments/submissions/${submissionId}/evaluate`, evaluationData);
+    return response.data?.data ?? response.data;
+  },
+
+  getAssignmentAnalytics: async (assignmentId) => {
+    const response = await api.get(`/api/assignments/${assignmentId}/analytics`);
+    return response.data?.data ?? response.data;
+  },
+
+  getSubmissionDownloadUrl: async (submissionId) => {
+    const response = await api.get(`/api/assignments/submissions/${submissionId}/download`);
     return response.data?.data ?? response.data;
   },
 };

@@ -135,16 +135,6 @@ const SiteNavbar = ({ onLoginClick, links, brandSuffix }) => {
                   </>
                 )}
 
-                {user?.role === "faculty" && (
-                  <>
-                    <li className="nav-item">
-                      <NavLink className="nav-link fw-medium" to="/faculty/dashboard">
-                        Dashboard
-                      </NavLink>
-                    </li>
-                  </>
-                )}
-
                 <li className="nav-item">
                   <NavLink className="nav-link fw-medium" to="/about">
                     About Us

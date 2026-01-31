@@ -20,7 +20,6 @@ import ProfilePage from "../pages/student/ProfilePage";
 // Faculty Pages
 import FacultyLayout from '../layouts/FacultyLayout';
 import FacultyHomePage from '../pages/faculty/HomePage';
-import FacultyDashboardPage from '../pages/faculty/DashboardPage';
 import SubjectsPage from '../pages/faculty/SubjectsPage';
 import FacultyAssignmentsPage from '../pages/faculty/AssignmentsPage';
 import AddAssignmentPage from '../pages/faculty/AddAssignmentPage';
@@ -114,7 +113,6 @@ const AppRoutes = () => {
         element={<FacultyLayout />}
       >
         <Route index element={<FacultyHomePage />} />
-        <Route path="dashboard" element={<FacultyDashboardPage />} />
         <Route path="subjects" element={<SubjectsPage />} />
         <Route path="assignments" element={<FacultyAssignmentsPage />} />
         <Route path="add-assignment" element={<AddAssignmentPage />} />

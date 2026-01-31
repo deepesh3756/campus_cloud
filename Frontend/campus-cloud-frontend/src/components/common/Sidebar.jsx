@@ -19,6 +19,7 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { useFacultyData } from "../../context/FacultyContext";
 import assignmentService from "../../services/api/assignmentService";
+import academicService from "../../services/api/academicService";
 
 import "./Sidebar.css";
 
@@ -197,7 +198,67 @@ const Sidebar = ({ menuItems: menuItemsProp }) => {
   const navigate = useNavigate();
   const { getCourses } = useFacultyData();
 
+  const [collapsed, setCollapsed] = useState(() => {
+    const stored = localStorage.getItem("campuscloud.sidebar.collapsed");
+    if (stored === null) return false;
+    return stored === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("campuscloud.sidebar.collapsed", String(collapsed));
+  }, [collapsed]);
+
   const [studentSubjects, setStudentSubjects] = useState([]);
+
+  const [facultyBatches, setFacultyBatches] = useState([]);
+  const [facultyAssignments, setFacultyAssignments] = useState([]);
+  const [latestBatchOpen, setLatestBatchOpen] = useState(true);
+  const [openCourses, setOpenCourses] = useState({});
+
+  useEffect(() => {
+    if (collapsed) return;
+    setLatestBatchOpen(true);
+  }, [collapsed]);
+
+  useEffect(() => {
+    if (collapsed) return;
+    setOpenCourses({});
+  }, [collapsed]);
+
+  useEffect(() => {
+    if (user?.role !== "faculty") return;
+    if (!user?.userId) return;
+
+    let mounted = true;
+    (async () => {
+      try {
+        const [b, a] = await Promise.all([
+          academicService.getBatches(),
+          academicService.getSubjectsByFaculty(user.userId),
+        ]);
+
+        if (!mounted) return;
+        const sortedBatches = (Array.isArray(b) ? b : [])
+          .slice()
+          .sort((x, y) => {
+            const dx = x?.createdAt ? new Date(x.createdAt).getTime() : 0;
+            const dy = y?.createdAt ? new Date(y.createdAt).getTime() : 0;
+            return dy - dx;
+          });
+
+        setFacultyBatches(sortedBatches);
+        setFacultyAssignments(Array.isArray(a) ? a : []);
+      } catch {
+        if (!mounted) return;
+        setFacultyBatches([]);
+        setFacultyAssignments([]);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.role, user?.userId]);
 
   useEffect(() => {
     if (!user?.role || user.role !== "student") return;
@@ -221,24 +282,14 @@ const Sidebar = ({ menuItems: menuItemsProp }) => {
     };
   }, [user?.role, user?.userId]);
 
-  const [collapsed, setCollapsed] = useState(() => {
-    const stored = localStorage.getItem("campuscloud.sidebar.collapsed");
-    if (stored === null) return false;
-    return stored === "true";
-  });
-
-  useEffect(() => {
-    localStorage.setItem("campuscloud.sidebar.collapsed", String(collapsed));
-  }, [collapsed]);
-
   // Generate faculty menu items dynamically from context
   const getFacultyMenuItems = () => {
     const courses = getCourses();
     return [
       {
-        label: "Dashboard",
+        label: "Homepage",
         icon: House,
-        path: "/faculty/dashboard",
+        path: "/faculty",
       },
       {
         label: "Courses",
@@ -338,6 +389,42 @@ const Sidebar = ({ menuItems: menuItemsProp }) => {
         ? getFacultyMenuItems()
         : studentMenuItems);
 
+  const latestBatchTree = useMemo(() => {
+    const latestBatch = (Array.isArray(facultyBatches) ? facultyBatches : [])[0] || null;
+    const batchName = latestBatch?.batchName || "";
+    const assignments = Array.isArray(facultyAssignments) ? facultyAssignments : [];
+    const filtered = batchName ? assignments.filter((a) => a?.batchName === batchName) : [];
+
+    const byCourseCode = new Map();
+    filtered.forEach((a) => {
+      const courseCode = a?.courseCode;
+      if (!courseCode) return;
+      if (!byCourseCode.has(courseCode)) {
+        byCourseCode.set(courseCode, {
+          courseCode,
+          courseName: a?.courseName || courseCode,
+          subjects: [],
+        });
+      }
+      byCourseCode.get(courseCode).subjects.push({
+        batchCourseSubjectId: a?.batchCourseSubjectId,
+        subjectId: a?.subjectId,
+        subjectName: a?.subjectName,
+        subjectCode: a?.subjectCode,
+      });
+    });
+
+    const courses = Array.from(byCourseCode.values()).map((c) => ({
+      ...c,
+      subjects: (Array.isArray(c.subjects) ? c.subjects : []).filter((s) => s?.subjectName || s?.subjectCode),
+    }));
+
+    return {
+      latestBatch,
+      courses,
+    };
+  }, [facultyBatches, facultyAssignments]);
+
   return (
     <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
 
@@ -362,14 +449,223 @@ const Sidebar = ({ menuItems: menuItemsProp }) => {
 
       {/* MENU */}
       <ul className="sidebar-menu">
-        {menuItems.map((item, index) => (
-          <SidebarItem
-            key={index}
-            item={item}
-            collapsed={collapsed}
-            onCourseSelect={handleCourseSelect}
-          />
-        ))}
+        {user?.role === "faculty" && !menuItemsProp ? (
+          <>
+            <SidebarItem item={menuItems[0]} collapsed={collapsed} onCourseSelect={handleCourseSelect} />
+
+            <li className="sidebar-dropdown">
+              <div
+                className={`sidebar-link sidebar-dropdown-toggle ${latestBatchOpen ? "active" : ""}`}
+                onClick={() => {
+                  if (collapsed) {
+                    setCollapsed(false);
+                    return;
+                  }
+                  setLatestBatchOpen((prev) => !prev);
+                }}
+                role="button"
+                tabIndex={0}
+                title={collapsed ? (latestBatchTree?.latestBatch?.batchName || "Latest Batch") : undefined}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    if (collapsed) {
+                      setCollapsed(false);
+                      return;
+                    }
+                    setLatestBatchOpen((prev) => !prev);
+                  }
+                }}
+                style={{ justifyContent: "space-between" }}
+              >
+                <div className="sidebar-link-content">
+                  <GraduationCap size={20} />
+                  {!collapsed ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      style={{
+                        color: "inherit",
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        font: "inherit",
+                        cursor: "default",
+                        textAlign: "left",
+                      }}
+                    >
+                      {latestBatchTree?.latestBatch?.batchName || "Latest Batch"}
+                    </button>
+                  ) : null}
+                </div>
+
+                {!collapsed ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setLatestBatchOpen((prev) => !prev);
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "0",
+                      display: "flex",
+                      alignItems: "center",
+                      color: "#d1d5db",
+                    }}
+                    aria-label={latestBatchOpen ? "Collapse" : "Expand"}
+                  >
+                    {latestBatchOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </button>
+                ) : null}
+              </div>
+
+              {!collapsed && latestBatchOpen ? (
+                <ul className="sidebar-submenu">
+                  {(latestBatchTree?.courses || []).map((course) => {
+                    const isOpen = !!openCourses[course.courseCode];
+                    return (
+                      <li key={course.courseCode}>
+                        <div
+                          className="sidebar-dropdown-toggle"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => {
+                            navigate("/faculty/subjects", {
+                              state: {
+                                batchId: latestBatchTree?.latestBatch?.batchId,
+                                batchName: latestBatchTree?.latestBatch?.batchName,
+                                courseCode: course.courseCode,
+                                courseName: course.courseName,
+                                subjects: course.subjects,
+                              },
+                            });
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              navigate("/faculty/subjects", {
+                                state: {
+                                  batchId: latestBatchTree?.latestBatch?.batchId,
+                                  batchName: latestBatchTree?.latestBatch?.batchName,
+                                  courseCode: course.courseCode,
+                                  courseName: course.courseName,
+                                  subjects: course.subjects,
+                                },
+                              });
+                            }
+                          }}
+                          style={{
+                            width: "100%",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            padding: "8px 0",
+                            borderRadius: 8,
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              navigate("/faculty/subjects", {
+                                state: {
+                                  batchId: latestBatchTree?.latestBatch?.batchId,
+                                  batchName: latestBatchTree?.latestBatch?.batchName,
+                                  courseCode: course.courseCode,
+                                  courseName: course.courseName,
+                                  subjects: course.subjects,
+                                },
+                              });
+                            }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              padding: 0,
+                              font: "inherit",
+                              cursor: "pointer",
+                              color: "#6b7280",
+                              textAlign: "left",
+                            }}
+                            onMouseEnter={(e) => (e.target.style.color = "#4f46e5")}
+                            onMouseLeave={(e) => (e.target.style.color = "#6b7280")}
+                          >
+                            {course.courseCode}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setOpenCourses((prev) => ({
+                                ...(prev || {}),
+                                [course.courseCode]: !prev?.[course.courseCode],
+                              }));
+                            }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: "0",
+                              display: "flex",
+                              alignItems: "center",
+                              color: "#d1d5db",
+                            }}
+                            aria-label={isOpen ? "Collapse" : "Expand"}
+                          >
+                            {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                          </button>
+                        </div>
+
+                        {isOpen ? (
+                          <ul className="sidebar-submenu">
+                            {(course.subjects || []).map((s) => (
+                              <li key={s.batchCourseSubjectId ?? `${course.courseCode}-${s.subjectId}-${s.subjectCode}`}>
+                                <NavLink
+                                  to="/faculty/assignments"
+                                  state={{
+                                    batchId: latestBatchTree?.latestBatch?.batchId,
+                                    batchName: latestBatchTree?.latestBatch?.batchName,
+                                    courseCode: course.courseCode,
+                                    courseName: course.courseName,
+                                    subjectId: s.subjectId,
+                                    subjectName: s.subjectName,
+                                    subjectCode: s.subjectCode,
+                                    batchCourseSubjectId: s.batchCourseSubjectId,
+                                  }}
+                                  className="sidebar-sublink"
+                                >
+                                  {s.subjectName || s.subjectCode}
+                                </NavLink>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+            </li>
+          </>
+        ) : (
+          menuItems.map((item, index) => (
+            <SidebarItem
+              key={index}
+              item={item}
+              collapsed={collapsed}
+              onCourseSelect={handleCourseSelect}
+            />
+          ))
+        )}
       </ul>
     </aside>
   );

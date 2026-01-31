@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import academicService from "../../services/api/academicService";
 import FacultyAssignedCourseCard from "../../components/faculty/FacultyAssignedCourseCard";
 
 const HomePage = () => {
+  const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -14,6 +15,8 @@ const HomePage = () => {
   const [batches, setBatches] = useState([]);
   const [selectedBatchId, setSelectedBatchId] = useState(null);
   const [facultyAssignments, setFacultyAssignments] = useState([]);
+
+  const requestedBatchId = location.state?.batchId ?? null;
 
   useEffect(() => {
     if (!user?.userId) return;
@@ -42,8 +45,13 @@ const HomePage = () => {
         setBatches(sortedBatches);
         setFacultyAssignments(Array.isArray(a) ? a : []);
 
-        if (sortedBatches.length && selectedBatchId == null) {
-          setSelectedBatchId(sortedBatches[0]?.batchId ?? null);
+        if (selectedBatchId == null) {
+          const exists = requestedBatchId != null && sortedBatches.some((bt) => bt?.batchId === requestedBatchId);
+          if (exists) {
+            setSelectedBatchId(requestedBatchId);
+          } else if (sortedBatches.length) {
+            setSelectedBatchId(sortedBatches[0]?.batchId ?? null);
+          }
         }
       } catch {
         if (!mounted) return;
@@ -58,7 +66,7 @@ const HomePage = () => {
     return () => {
       mounted = false;
     };
-  }, [user?.userId, selectedBatchId]);
+  }, [requestedBatchId, user?.userId]);
 
   const selectedBatch = useMemo(() => {
     if (!selectedBatchId) return null;
@@ -106,6 +114,24 @@ const HomePage = () => {
     });
   };
 
+  if (authLoading) {
+    return (
+      <div className="container-fluid">
+        <div className="text-center">
+          <p>Loading session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user?.userId) {
+    return (
+      <div className="container-fluid">
+        <div className="alert alert-warning">Please login again to view your assigned courses.</div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="container-fluid">
@@ -140,6 +166,12 @@ const HomePage = () => {
                 type="button"
                 className={`nav-link ${b?.batchId === selectedBatchId ? "active" : ""}`}
                 onClick={() => setSelectedBatchId(b?.batchId ?? null)}
+                style={{
+                  color: b?.batchId === selectedBatchId ? "#555c64ff" : "#6c757d",
+                  backgroundColor: b?.batchId === selectedBatchId ? "#fff" : "transparent",
+                  borderColor: b?.batchId === selectedBatchId ? "#dee2e6 #dee2e6 #fff" : "transparent",
+                  borderBottom: b?.batchId === selectedBatchId ? "1px solid #fff" : "none",
+                }}
               >
                 {b?.batchName || `Batch ${b?.batchId ?? ""}`}
               </button>
