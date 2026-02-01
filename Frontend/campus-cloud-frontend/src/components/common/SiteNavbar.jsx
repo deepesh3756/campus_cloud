@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "../../hooks/useAuth";
+import api from "../../services/api/axios.config";
 import NotificationDropdown from "../student/NotificationDropdown";
 
 import "./SiteNavbar.css";
@@ -11,6 +12,7 @@ const SiteNavbar = ({ onLoginClick, links, brandSuffix }) => {
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [failedProfilePictureUrl, setFailedProfilePictureUrl] = useState(null);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -18,6 +20,43 @@ const SiteNavbar = ({ onLoginClick, links, brandSuffix }) => {
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
   const navbarRef = useRef(null);
+
+  const refreshUnreadCount = useCallback(async () => {
+    const userId = user?.userId;
+    if (!userId || user?.role !== "student") {
+      setUnreadCount(0);
+      return;
+    }
+
+    try {
+      const response = await api.get(`/api/notifications/user/${userId}/unread-count`);
+      const payload = response.data?.data ?? response.data;
+      const count = payload?.count;
+      setUnreadCount(typeof count === "number" ? count : 0);
+    } catch {
+      setUnreadCount(0);
+    }
+  }, [user?.role, user?.userId]);
+
+  useEffect(() => {
+    refreshUnreadCount();
+    const intervalId = window.setInterval(() => {
+      refreshUnreadCount();
+    }, 15000);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshUnreadCount();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [refreshUnreadCount]);
 
   const handleLogout = async () => {
     await logout();
@@ -173,16 +212,20 @@ const SiteNavbar = ({ onLoginClick, links, brandSuffix }) => {
                     onClick={() => {
                       setShowNotification((prev) => !prev);
                       setShowDropdown(false);
+                      refreshUnreadCount();
                     }}
                   >
                     <i className="bi bi-bell fs-5"></i>
 
-                    <span className="notification-badge">4</span>
+                    {unreadCount > 0 ? (
+                      <span className="notification-badge">{unreadCount}</span>
+                    ) : null}
                   </button>
 
                   {showNotification && (
                     <NotificationDropdown
                       onClose={() => setShowNotification(false)}
+                      onNotificationsUpdated={refreshUnreadCount}
                     />
                   )}
                 </div>

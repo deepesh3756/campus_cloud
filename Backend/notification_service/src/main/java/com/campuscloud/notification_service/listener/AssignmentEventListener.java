@@ -45,10 +45,12 @@ public class AssignmentEventListener {
             for (Long studentId : studentIds) {
                 // Format the notification message
                 String title = "New Assignment: " + event.getTitle();
-                String message = String.format("New Assignment: %s assigned for %s. Deadline: %s",
+                String dueDate = event.getDeadline().format(DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm"));
+                String message = String.join(";",
+                        "New Assignment",
                         event.getTitle(),
                         subjectName,
-                        event.getDeadline().format(DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")));
+                        dueDate);
 
                 // Save notification to database
                 Notification notification = notificationService.createNotification(

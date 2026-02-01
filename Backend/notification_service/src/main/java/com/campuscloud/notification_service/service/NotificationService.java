@@ -86,6 +86,32 @@ public class NotificationService {
     }
 
     /**
+     * Mark notification as read with authorization check.
+     * Non-admin callers may only mark notifications that belong to their own userId.
+     */
+    @Transactional
+    public NotificationDTO markAsRead(Long notificationId, Long requesterUserId, boolean admin) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
+
+        if (!admin) {
+            Long ownerId = notification.getUserId();
+            if (requesterUserId == null || ownerId == null || !ownerId.equals(requesterUserId)) {
+                throw new org.springframework.security.access.AccessDeniedException("Forbidden");
+            }
+        }
+
+        if (!notification.getIsRead()) {
+            notification.setIsRead(true);
+            notification.setReadAt(LocalDateTime.now());
+            notification = notificationRepository.save(notification);
+            log.info("Marked notification {} as read", notificationId);
+        }
+
+        return convertToDTO(notification);
+    }
+
+    /**
      * Mark all notifications as read for a user
      */
     @Transactional

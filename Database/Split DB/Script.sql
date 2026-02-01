@@ -898,6 +898,20 @@ CREATE TABLE notifications (
     INDEX idx_reference (reference_type, reference_id)
 );
 
+SET GLOBAL event_scheduler = ON;
+DELIMITER $$
+CREATE EVENT ev_delete_read_notifications
+ON SCHEDULE EVERY 1 WEEK
+STARTS CURRENT_TIMESTAMP
+COMMENT 'Removes all notifications that have been read to save space.'
+DO
+BEGIN
+    DELETE FROM notifications 
+    WHERE is_read = TRUE 
+    AND read_at <= CURRENT_TIMESTAMP;
+END$$
+DELIMITER ;
+
 -- Sample notifications for user_id = 12345 (Student)
 INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, is_read, created_at, read_at)
 VALUES 

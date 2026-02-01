@@ -1,14 +1,35 @@
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import UserWelcome from "../../components/common/UserWelcome";
 import StatsCard from "../../components/student/StatsCard";
+import { useAuth } from "../../hooks/useAuth";
+import api from "../../services/api/axios.config";
 import userService from "../../services/api/userService";
 import assignmentService from "../../services/api/assignmentService";
 
 const HomePage = () => {
+  const { user } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [pendingCount, setPendingCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const refreshUnreadCount = useCallback(async () => {
+    const userId = user?.userId;
+    if (!userId || user?.role !== "student") {
+      setUnreadCount(0);
+      return;
+    }
+
+    try {
+      const response = await api.get(`/api/notifications/user/${userId}/unread-count`);
+      const payload = response.data?.data ?? response.data;
+      const count = payload?.count;
+      setUnreadCount(typeof count === "number" ? count : 0);
+    } catch {
+      setUnreadCount(0);
+    }
+  }, [user?.role, user?.userId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -39,6 +60,26 @@ const HomePage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    refreshUnreadCount();
+    const intervalId = window.setInterval(() => {
+      refreshUnreadCount();
+    }, 15000);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshUnreadCount();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [refreshUnreadCount]);
+
   return (
     <div className="bg-light min-vh-100">
 
@@ -61,7 +102,7 @@ const HomePage = () => {
           <div className="col-md-6">
             <StatsCard
               title="Unread Notifications"
-              count="2"
+              count={String(unreadCount)}
               description="New alerts and announcements."
             />
           </div>
