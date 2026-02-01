@@ -1,8 +1,10 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Upload } from "lucide-react";
+import { toast } from "react-toastify";
 
 import CourseBreadcrumb from "../../components/faculty/CourseBreadcrumb";
+import assignmentService from "../../services/api/assignmentService";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
@@ -12,9 +14,15 @@ const AddAssignmentPage = () => {
   const fileInputRef = useRef(null);
 
   const {
-    courseId = null,
-    courseName = "PG-DAC",
-    subjectId = null,
+    mode = "create",
+    assignmentId = null,
+    batchId = null,
+    batchName = null,
+    courseCode = null,
+    courseName = null,
+    subjects = [],
+    batchCourseSubjectId = null,
+    subjectCode = null,
     subjectName = null,
   } = location.state || {};
 
@@ -23,11 +31,46 @@ const AddAssignmentPage = () => {
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState([]);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [existingFileUrl, setExistingFileUrl] = useState(null);
+  const [existingFileName, setExistingFileName] = useState(null);
 
   const pageTitle = useMemo(() => {
     const prefix = subjectName || "Assignment";
-    return `${prefix} : Add New Assignment`;
-  }, [subjectName]);
+    return mode === "edit" ? `${prefix} : Edit Assignment` : `${prefix} : Add New Assignment`;
+  }, [mode, subjectName]);
+
+  useEffect(() => {
+    if (mode !== "edit") return;
+    if (!assignmentId) return;
+
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const a = await assignmentService.getAssignmentById(assignmentId);
+        if (!mounted) return;
+
+        setTitle(a?.title || "");
+        setDescription(a?.description || "");
+        setExistingFileUrl(a?.fileUrl || null);
+        setExistingFileName(a?.fileName || null);
+
+        if (typeof a?.dueDate === "string" && a.dueDate.length >= 10) {
+          setDueDate(a.dueDate.slice(0, 10));
+        }
+      } catch {
+        if (!mounted) return;
+        toast.error("Failed to load assignment details.");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [assignmentId, mode]);
 
   const validate = () => {
     const nextErrors = {};
@@ -39,6 +82,10 @@ const AddAssignmentPage = () => {
 
     if (!dueDate) {
       nextErrors.dueDate = "Due date is required";
+    }
+
+    if (!batchCourseSubjectId) {
+      nextErrors.batchCourseSubjectId = "Missing subject context";
     }
 
     const invalidFiles = files.filter((f) => f.size > MAX_FILE_SIZE_BYTES);
@@ -85,30 +132,69 @@ const AddAssignmentPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate()) {
+      toast.error("Please fix the errors and try again.");
+      return;
+    }
 
-    console.log("Create assignment", {
-      courseId,
-      subjectId,
-      title: title.trim(),
-      dueDate,
-      description,
-      files,
-    });
+    (async () => {
+      try {
+        setLoading(true);
 
-    navigate("/faculty/assignments", {
-      state: {
-        courseId,
-        courseName,
-        subjectId,
-        subjectName,
-      },
-    });
+        const dueLocalDateTime = `${dueDate}T23:59:59`;
+
+        const payload = {
+          batchCourseSubjectId,
+          title: title.trim(),
+          description: description.trim(),
+          dueDate: dueLocalDateTime,
+        };
+
+        const formData = new FormData();
+        formData.append("assignment", JSON.stringify(payload));
+
+        const firstFile = files?.[0] || null;
+        if (firstFile) {
+          formData.append("file", firstFile);
+        }
+
+        if (mode === "edit") {
+          await assignmentService.updateAssignment(assignmentId, formData);
+          toast.success("Assignment updated successfully.");
+        } else {
+          await assignmentService.createAssignment(formData);
+          toast.success("Assignment created successfully.");
+        }
+
+        navigate("/faculty/assignments", {
+          state: {
+            batchId,
+            batchName,
+            courseCode,
+            courseName,
+            subjects,
+            batchCourseSubjectId,
+            subjectCode,
+            subjectName,
+          },
+        });
+      } catch (err) {
+        toast.error(err?.response?.data?.message || "Failed to save assignment");
+      } finally {
+        setLoading(false);
+      }
+    })();
   };
 
   return (
     <div className="container-fluid">
-      <CourseBreadcrumb courseName={courseName} subjectName={subjectName} />
+      <CourseBreadcrumb
+        batchId={batchId}
+        batchName={batchName}
+        courseName={courseName || courseCode}
+        subjectName={subjectName}
+        state={location.state}
+      />
 
       <div className="card border-0 shadow-sm">
         <div className="card-body p-4">
@@ -158,6 +244,15 @@ const AddAssignmentPage = () => {
 
             <div className="mb-3">
               <label className="form-label fw-semibold">Attachments</label>
+
+              {mode === "edit" && existingFileUrl ? (
+                <div className="mb-2 small">
+                  <span className="text-muted">Current file: </span>
+                  <a href={existingFileUrl} target="_blank" rel="noreferrer">
+                    {existingFileName || "View"}
+                  </a>
+                </div>
+              ) : null}
 
               <div
                 role="button"
@@ -224,6 +319,7 @@ const AddAssignmentPage = () => {
                 type="submit"
                 className="btn btn-primary"
                 style={{ backgroundColor: "#5B5CE6", borderColor: "#5B5CE6" }}
+                disabled={loading}
               >
                 Save Changes
               </button>

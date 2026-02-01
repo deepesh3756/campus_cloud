@@ -10,12 +10,13 @@ const AssignmentSubmissionSection = ({
   onSubmit,
   onCancel,
   accept = ACCEPT,
-  maxSizeText = "Maximum size: 25MB",
+  maxSizeBytes = 10 * 1024 * 1024,
+  maxSizeText = "Maximum size: 10MB",
 }) => {
   const inputRef = useRef(null);
 
   const { file, error, uploading, handleFileChange, reset } = useFileUpload({
-    maxSize: 25 * 1024 * 1024,
+    maxSize: maxSizeBytes,
     allowedTypes: accept.split(",").map((s) => s.trim()),
     allowedMimeTypes: [
       "application/pdf",

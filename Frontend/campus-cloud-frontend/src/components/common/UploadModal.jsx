@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Modal from "./Modal";
 import { CloudUpload } from "lucide-react";
+import { validateFile } from "../../utils/fileValidator";
 
 const UploadModal = ({
   isOpen,
@@ -8,23 +9,61 @@ const UploadModal = ({
   title = "Upload File",
   onSubmit,
   accept = ".pdf,.doc,.docx,.zip",
-  maxSizeText = "Maximum size: 25MB",
+  maxSizeBytes = 10 * 1024 * 1024,
+  maxSizeText = "Maximum size: 10MB",
 }) => {
   const [file, setFile] = useState(null);
+  const [error, setError] = useState(null);
+
+  const pickFile = (picked) => {
+    if (!picked) {
+      setFile(null);
+      setError(null);
+      return;
+    }
+
+    const allowedTypes = accept
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const validation = validateFile(picked, { maxSize: maxSizeBytes, allowedTypes });
+    if (!validation.isValid) {
+      setFile(null);
+      setError(validation.error);
+      return;
+    }
+
+    setError(null);
+    setFile(picked);
+  };
 
   const handleChange = (e) => {
-    setFile(e.target.files?.[0]);
+    pickFile(e.target.files?.[0]);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const dropped = e.dataTransfer?.files?.[0];
+    pickFile(dropped);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!file) return;
+    if (!file || error) return;
     onSubmit(file);
     setFile(null);
+    setError(null);
+  };
+
+  const handleClose = () => {
+    setFile(null);
+    setError(null);
+    onClose();
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title}>
+    <Modal isOpen={isOpen} onClose={handleClose} title={title}>
       <form onSubmit={handleSubmit}>
         {/* Upload box */}
         <label
@@ -34,6 +73,8 @@ const UploadModal = ({
             cursor: "pointer",
             backgroundColor: "#fafafa",
           }}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleDrop}
         >
           <CloudUpload size={40} className="mb-2 text-secondary" />
 
@@ -63,12 +104,14 @@ const UploadModal = ({
           </div>
         )}
 
+        {error ? <div className="text-danger mb-3">{error}</div> : null}
+
         {/* Buttons */}
         <div className="d-flex justify-content-end gap-2">
           <button
             type="button"
             className="btn btn-outline-secondary"
-            onClick={onClose}
+            onClick={handleClose}
           >
             Cancel
           </button>
@@ -76,7 +119,7 @@ const UploadModal = ({
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={!file}
+            disabled={!file || !!error}
           >
             Upload
           </button>

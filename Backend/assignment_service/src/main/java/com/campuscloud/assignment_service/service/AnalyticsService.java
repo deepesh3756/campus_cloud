@@ -41,7 +41,7 @@ public class AnalyticsService {
                 ));
 
         // 2. Get total enrolled students count
-        long totalStudents = getTotalEnrolledStudents(assignment.getBatchCourseSubjectId());
+        long totalStudents = getTotalStudentsForAssignment(assignmentId, assignment.getBatchCourseSubjectId());
 
         // 3. Get submission counts by status
         long submittedCount = submissionRepository.countSubmittedByAssignmentId(assignmentId);
@@ -87,21 +87,28 @@ public class AnalyticsService {
     /**
      * Get total enrolled students for a batch-course-subject
      */
-    private long getTotalEnrolledStudents(Long batchCourseSubjectId) {
+    private long getTotalStudentsForAssignment(Long assignmentId, Long batchCourseSubjectId) {
+        long submissionRecords = 0;
+        try {
+            submissionRecords = submissionRepository.countByAssignmentId(assignmentId);
+        } catch (Exception e) {
+            log.error("Failed to count submission records for assignment: {}", assignmentId, e);
+        }
+
+        long enrolledCount = 0;
         try {
             ApiResponse<List<Long>> response = academicServiceClient
                     .getEnrolledStudentIds(batchCourseSubjectId);
 
             if (response.isSuccess() && response.getData() != null) {
-                return response.getData().size();
+                enrolledCount = response.getData().size();
             }
         } catch (Exception e) {
             log.error("Failed to get enrolled students count for BCS: {}", 
                     batchCourseSubjectId, e);
         }
-        
-        // Fallback: count submissions for this assignment
-        return submissionRepository.countByAssignmentId(batchCourseSubjectId);
+
+        return Math.max(enrolledCount, submissionRecords);
     }
 
     /**

@@ -1,44 +1,90 @@
 import AssignmentStatusCard from "./AssignmentStatusCard";
+import { useEffect, useMemo, useState } from "react";
+import { assignmentService } from "../../services/api/assignmentService";
 
 const AssignmentStatusSummary = () => {
-  const pending = [
-    { subject: "Mathematics", count: 3 },
-    { subject: "Physics", count: 2 },
-    { subject: "History", count: 1 },
-    { subject: "Literature", count: 2 },
-  ];
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const submitted = [
-    { subject: "Chemistry", count: 4 },
-    { subject: "Mathematics", count: 5 },
-    { subject: "Physics", count: 3 },
-  ];
+  useEffect(() => {
+    let mounted = true;
 
-  const evaluated = [
-    { subject: "Mathematics", count: 2 },
-    { subject: "History", count: 3 },
-    { subject: "Chemistry", count: 1 },
-  ];
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await assignmentService.getStudentStatusSummary();
+        if (mounted) {
+          setSummary(data);
+        }
+      } catch (e) {
+        if (mounted) {
+          setError(e);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const pendingData = useMemo(() => {
+    const subjects = summary?.pending?.subjects ?? [];
+    return subjects.map((s) => ({
+      subject: s.subjectName ?? s.subjectCode ?? "",
+      count: s.count ?? 0,
+    }));
+  }, [summary]);
+
+  const submittedData = useMemo(() => {
+    const subjects = summary?.submitted?.subjects ?? [];
+    return subjects.map((s) => ({
+      subject: s.subjectName ?? s.subjectCode ?? "",
+      count: s.count ?? 0,
+    }));
+  }, [summary]);
+
+  const evaluatedData = useMemo(() => {
+    const subjects = summary?.evaluated?.subjects ?? [];
+    return subjects.map((s) => ({
+      subject: s.subjectName ?? s.subjectCode ?? "",
+      count: s.count ?? 0,
+    }));
+  }, [summary]);
+
+  if (loading) {
+    return <div className="py-4">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="py-4">Failed to load assignment summary</div>;
+  }
 
   return (
     <div className="status-summary-grid">
 
       <AssignmentStatusCard
         title="Pending"
-        total={8}
-        data={pending}
+        total={summary?.pending?.total ?? 0}
+        data={pendingData}
       />
 
       <AssignmentStatusCard
         title="Submitted"
-        total={12}
-        data={submitted}
+        total={summary?.submitted?.total ?? 0}
+        data={submittedData}
       />
 
       <AssignmentStatusCard
         title="Evaluated  "
-        total={6}
-        data={evaluated}
+        total={summary?.evaluated?.total ?? 0}
+        data={evaluatedData}
       />
 
     </div>

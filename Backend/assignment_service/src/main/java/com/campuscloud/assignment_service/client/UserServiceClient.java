@@ -19,6 +19,6 @@ public interface UserServiceClient {
     @GetMapping("/api/users/{userId}")
     ApiResponse<Map<String, Object>> getUserById(@PathVariable Long userId);
 
-    @PostMapping("/api/users/bulk-details")
+    @PostMapping("/api/users/by-ids")
     ApiResponse<List<Map<String, Object>>> getBulkUserDetails(@RequestBody List<Long> userIds);
 }

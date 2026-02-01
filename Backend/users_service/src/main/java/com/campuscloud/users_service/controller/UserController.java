@@ -81,7 +81,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(available));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','FACULTY')")
     @PostMapping("/by-ids")
     public ResponseEntity<ApiResponse<List<UserResponseDto>>> getUsersByIds(@RequestBody List<Long> userIds) {
         return ResponseEntity.ok(ApiResponse.success(userService.getUsersByIds(userIds)));

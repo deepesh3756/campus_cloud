@@ -17,6 +17,9 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     // Find all assignments for a specific batch-course-subject
     List<Assignment> findByBatchCourseSubjectId(Long batchCourseSubjectId);
 
+    // Find assignments across multiple batch-course-subjects
+    List<Assignment> findByBatchCourseSubjectIdIn(List<Long> batchCourseSubjectIds);
+
     // Find assignments by batch-course-subject and status
     List<Assignment> findByBatchCourseSubjectIdAndStatus(
             Long batchCourseSubjectId, 

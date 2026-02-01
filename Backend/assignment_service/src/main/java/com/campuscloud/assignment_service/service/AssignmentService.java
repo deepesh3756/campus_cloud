@@ -165,6 +165,56 @@ public class AssignmentService {
     }
 
     /**
+     * Update assignment details (faculty)
+     */
+    @Transactional
+    public AssignmentDTO updateAssignment(
+            Long assignmentId,
+            CreateAssignmentRequest request,
+            MultipartFile file,
+            Long facultyUserId
+    ) {
+        log.info("Updating assignment: {} by faculty: {}", assignmentId, facultyUserId);
+
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Assignment not found with ID: " + assignmentId
+                ));
+
+        if (!assignment.getCreatedByUserId().equals(facultyUserId)) {
+            throw new UnauthorizedException(
+                    "You are not authorized to modify this assignment"
+            );
+        }
+
+        Long bcsId = assignment.getBatchCourseSubjectId();
+
+        validateBatchCourseSubject(bcsId);
+        validateFacultyAssignment(facultyUserId, bcsId);
+
+        assignment.setTitle(request.getTitle());
+        assignment.setDescription(request.getDescription());
+        assignment.setDueDate(request.getDueDate());
+
+        boolean hasFile = file != null && !file.isEmpty();
+        if (hasFile) {
+            fileValidationService.validateAssignmentFile(file);
+            FileUploadResponse fileResponse = cloudinaryService.uploadAssignmentFile(
+                    file,
+                    bcsId,
+                    assignment.getAssignmentId()
+            );
+            assignment.setFileName(fileResponse.getFileName());
+            assignment.setFilePath(fileResponse.getFileUrl());
+            assignment.setMimeType(fileResponse.getMimeType());
+        }
+
+        assignment = assignmentRepository.save(assignment);
+        log.info("Assignment updated successfully: {}", assignmentId);
+        return AssignmentDTO.fromEntity(assignment);
+    }
+
+    /**
      * Get assignment details by ID
      */
     public AssignmentDTO getAssignmentById(Long assignmentId) {

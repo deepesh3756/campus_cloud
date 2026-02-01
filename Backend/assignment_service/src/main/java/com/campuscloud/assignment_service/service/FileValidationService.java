@@ -20,6 +20,12 @@ public class FileValidationService {
     @Value("${file.upload.max-size-mb}")
     private int maxSizeMb;
 
+    @Value("${file.upload.submission-max-size-mb:${file.upload.max-size-mb}}")
+    private int submissionMaxSizeMb;
+
+    @Value("${file.upload.assignment-max-size-mb:${file.upload.max-size-mb}}")
+    private int assignmentMaxSizeMb;
+
     private static final List<String> DANGEROUS_EXTENSIONS = Arrays.asList(
             "exe", "bat", "cmd", "com", "pif", "scr", "vbs", "js", "jar", "sh", "app"
     );
@@ -28,20 +34,20 @@ public class FileValidationService {
      * Validate file for assignment upload
      */
     public void validateAssignmentFile(MultipartFile file) {
-        validateFile(file, "Assignment");
+        validateFile(file, "Assignment", assignmentMaxSizeMb);
     }
 
     /**
      * Validate file for submission upload
      */
     public void validateSubmissionFile(MultipartFile file) {
-        validateFile(file, "Submission");
+        validateFile(file, "Submission", submissionMaxSizeMb);
     }
 
     /**
      * Main validation method
      */
-    private void validateFile(MultipartFile file, String context) {
+    private void validateFile(MultipartFile file, String context, int maxSizeLimitMb) {
         // Check if file is empty
         if (file == null || file.isEmpty()) {
             throw new InvalidFileException(context + " file cannot be empty");
@@ -51,7 +57,7 @@ public class FileValidationService {
         validateFileName(file.getOriginalFilename(), context);
 
         // Validate file size
-        validateFileSize(file.getSize(), context);
+        validateFileSize(file.getSize(), context, maxSizeLimitMb);
 
         // Validate file type
         validateFileType(file.getContentType(), file.getOriginalFilename(), context);
@@ -96,16 +102,16 @@ public class FileValidationService {
     /**
      * Validate file size
      */
-    private void validateFileSize(long fileSize, String context) {
+    private void validateFileSize(long fileSize, String context, int maxSizeLimitMb) {
         if (fileSize == 0) {
             throw new InvalidFileException(context + " file is empty (0 bytes)");
         }
 
-        long maxSizeBytes = (long) maxSizeMb * 1024 * 1024;
+        long maxSizeBytes = (long) maxSizeLimitMb * 1024 * 1024;
         if (fileSize > maxSizeBytes) {
             throw new InvalidFileException(
                     String.format("%s file size exceeds limit. Maximum allowed: %d MB, File size: %s",
-                            context, maxSizeMb, formatFileSize(fileSize))
+                            context, maxSizeLimitMb, formatFileSize(fileSize))
             );
         }
     }

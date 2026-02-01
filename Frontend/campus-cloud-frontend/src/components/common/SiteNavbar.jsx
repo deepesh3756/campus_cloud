@@ -11,6 +11,7 @@ const SiteNavbar = ({ onLoginClick, links, brandSuffix }) => {
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
+  const [failedProfilePictureUrl, setFailedProfilePictureUrl] = useState(null);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -134,16 +135,6 @@ const SiteNavbar = ({ onLoginClick, links, brandSuffix }) => {
                   </>
                 )}
 
-                {user?.role === "faculty" && (
-                  <>
-                    <li className="nav-item">
-                      <NavLink className="nav-link fw-medium" to="/faculty/dashboard">
-                        Dashboard
-                      </NavLink>
-                    </li>
-                  </>
-                )}
-
                 <li className="nav-item">
                   <NavLink className="nav-link fw-medium" to="/about">
                     About Us
@@ -207,16 +198,28 @@ const SiteNavbar = ({ onLoginClick, links, brandSuffix }) => {
                   }}
                 >
                   <div className="position-relative">
-                    <div
-                      className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-                      style={{
-                        width: 38,
-                        height: 38,
-                        backgroundColor: "#6f42c1",
-                      }}
-                    >
-                      {user?.name?.[0] || "U"}
-                    </div>
+                    {user?.profilePictureUrl && user?.profilePictureUrl !== failedProfilePictureUrl ? (
+                      <img
+                        src={user.profilePictureUrl}
+                        alt="profile"
+                        className="rounded-circle border"
+                        width="38"
+                        height="38"
+                        style={{ objectFit: "cover" }}
+                        onError={() => setFailedProfilePictureUrl(user.profilePictureUrl)}
+                      />
+                    ) : (
+                      <div
+                        className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+                        style={{
+                          width: 38,
+                          height: 38,
+                          backgroundColor: "#6f42c1",
+                        }}
+                      >
+                        {(user?.firstName || user?.name || user?.username || "U")[0]?.toUpperCase()}
+                      </div>
+                    )}
 
                     <span
                       className="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle"
@@ -227,6 +230,15 @@ const SiteNavbar = ({ onLoginClick, links, brandSuffix }) => {
 
                 {showDropdown && (
                   <ul className="profile-dropdown-menu">
+                    <li className="px-3 pt-2 pb-0 text-muted " style={{ fontSize: 13 }}>
+                      {(() => {
+                        const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
+                        return fullName || user?.name || user?.username || "User";
+                      })()}
+                    </li>
+                    <li>
+                      <hr className="dropdown-divider my-1" />
+                    </li>
                     <li>
                       <NavLink
                         to={`/${user.role}/profile`}
