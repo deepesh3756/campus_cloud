@@ -872,3 +872,83 @@ INSERT INTO assignments (
     'ACTIVE'
 );
 
+-- =====================================================
+-- DATABASE 4 - NOTIFICATION_DB
+-- =====================================================
+
+DROP DATABASE IF EXISTS notification_db;
+CREATE DATABASE notification_db;
+USE notification_db;
+
+CREATE TABLE notifications (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    reference_id BIGINT,
+    reference_type VARCHAR(50),
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    read_at TIMESTAMP NULL,
+    
+    -- Indexes for better performance
+    INDEX idx_user_read (user_id, is_read),
+    INDEX idx_created_at (created_at DESC),
+    INDEX idx_reference (reference_type, reference_id)
+);
+
+-- Sample notifications for user_id = 12345 (Student)
+INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, is_read, created_at, read_at)
+VALUES 
+-- Read notification 2
+(5, 'NEW_ASSIGNMENT', 'New Assignment: Web Development Project', 'Prof. Singh has assigned "Build REST API". Deadline: Feb 12, 2026', 1, 'ASSIGNMENT', true, '2026-01-29 15:30:00', '2026-01-29 16:00:00'),
+
+-- Read notification 1
+(5, 'NEW_ASSIGNMENT', 'New Assignment: Database Lab 3', 'Dr. Patel has assigned "SQL Queries Practice". Deadline: Feb 08, 2026', 2, 'ASSIGNMENT', true, '2026-01-30 09:00:00', '2026-01-30 10:15:00'),
+
+-- Unread notification 2
+(5, 'NEW_ASSIGNMENT', 'New Assignment: Data Structures Quiz 3', 'Dr. Sharma has posted a new quiz on Graph Algorithms. Deadline: Feb 05, 2026', 3, 'ASSIGNMENT', false, '2026-01-31 14:30:00', NULL),
+
+-- Unread notification 1
+(5, 'NEW_ASSIGNMENT', 'New Assignment: Java Programming Lab 5', 'Prof. Kumar has assigned "Implement Binary Search Tree". Deadline: Feb 10, 2026', 4, 'ASSIGNMENT', false, '2026-01-31 10:00:00', NULL);
+
+-- Sample notifications for user_id = 12346 (Another Student)
+INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, is_read, created_at, read_at)
+VALUES 
+(6, 'NEW_ASSIGNMENT', 'New Assignment: Java Programming Lab 5', 'Prof. Kumar has assigned "Implement Binary Search Tree". Deadline: Feb 10, 2026', 3, 'ASSIGNMENT', false, '2026-01-31 10:00:00', NULL),
+
+(6, 'NEW_ASSIGNMENT', 'New Assignment: Operating Systems Assignment', 'Dr. Reddy has posted "Process Scheduling Algorithms". Deadline: Feb 15, 2026', 2, 'ASSIGNMENT', true, '2026-01-31 11:00:00', '2026-01-31 12:00:00');
+
+-- Check all notifications
+SELECT * FROM notifications;
+
+-- Get unread notifications for user 12345
+SELECT * FROM notifications 
+WHERE user_id = 5 AND is_read = false
+ORDER BY created_at DESC;
+
+-- Count unread notifications per user
+SELECT user_id, COUNT(*) as unread_count 
+FROM notifications 
+WHERE is_read = false 
+GROUP BY user_id;
+
+-- Get all notifications for a specific assignment
+SELECT * FROM notifications 
+WHERE reference_type = 'ASSIGNMENT' AND reference_id = 2;
+
+-- ===================== testing ==========================
+
+-- Mark a notification as read
+UPDATE notifications 
+SET is_read = true, read_at = CURRENT_TIMESTAMP 
+WHERE id = 3;
+
+-- Get latest 10 notifications for a user
+SELECT * FROM notifications 
+WHERE user_id = 5 
+ORDER BY created_at DESC 
+LIMIT 10;
+
+

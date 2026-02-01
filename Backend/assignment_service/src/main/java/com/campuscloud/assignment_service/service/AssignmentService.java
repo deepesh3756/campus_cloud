@@ -8,6 +8,8 @@ import com.campuscloud.assignment_service.dto.response.AssignmentDTO;
 import com.campuscloud.assignment_service.dto.response.FileUploadResponse;
 import com.campuscloud.assignment_service.entity.Assignment;
 import com.campuscloud.assignment_service.entity.Submission;
+import com.campuscloud.assignment_service.event.AssignmentCreatedEvent;
+import com.campuscloud.assignment_service.event.EventPublisher;
 import com.campuscloud.assignment_service.exception.ResourceNotFoundException;
 import com.campuscloud.assignment_service.exception.UnauthorizedException;
 import com.campuscloud.assignment_service.repository.AssignmentRepository;
@@ -45,6 +47,9 @@ public class AssignmentService {
     @Autowired
     private UserServiceClient userServiceClient;
 
+    @Autowired
+    private EventPublisher eventPublisher;
+
     /**
      * Create new assignment with file upload
      */
@@ -52,8 +57,7 @@ public class AssignmentService {
     public AssignmentDTO createAssignment(
             CreateAssignmentRequest request,
             MultipartFile file,
-            Long facultyUserId
-    ) {
+            Long facultyUserId) {
         log.info("Creating assignment: {} by faculty: {}", request.getTitle(), facultyUserId);
 
         // 1. Validate batch-course-subject exists
@@ -91,8 +95,7 @@ public class AssignmentService {
             FileUploadResponse fileResponse = cloudinaryService.uploadAssignmentFile(
                     file,
                     request.getBatchCourseSubjectId(),
-                    assignment.getAssignmentId()
-            );
+                    assignment.getAssignmentId());
 
             // 7. Update assignment with file information
             assignment.setFileName(fileResponse.getFileName());
@@ -103,6 +106,9 @@ public class AssignmentService {
 
         // 8. Create submission records for all enrolled students
         createSubmissionRecordsForStudents(assignment.getAssignmentId(), request.getBatchCourseSubjectId());
+
+        // 9. Publish event to RabbitMQ for notifications
+        publishAssignmentCreatedEvent(assignment, facultyUserId);
 
         log.info("Assignment created successfully: {}", assignment.getAssignmentId());
         return AssignmentDTO.fromEntity(assignment);
@@ -148,8 +154,7 @@ public class AssignmentService {
         if (status != null && !status.trim().isEmpty()) {
             Assignment.AssignmentStatus assignmentStatus = Assignment.AssignmentStatus.valueOf(status.toUpperCase());
             assignments = assignmentRepository.findByBatchCourseSubjectIdAndStatus(
-                    batchCourseSubjectId, assignmentStatus
-            );
+                    batchCourseSubjectId, assignmentStatus);
         } else {
             assignments = assignmentRepository.findByBatchCourseSubjectId(batchCourseSubjectId);
         }
@@ -164,11 +169,10 @@ public class AssignmentService {
      */
     public AssignmentDTO getAssignmentById(Long assignmentId) {
         log.info("Fetching assignment: {}", assignmentId);
-        
+
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Assignment not found with ID: " + assignmentId
-                ));
+                        "Assignment not found with ID: " + assignmentId));
 
         return AssignmentDTO.fromEntity(assignment);
     }
@@ -178,7 +182,7 @@ public class AssignmentService {
      */
     public List<AssignmentDTO> getAssignmentsByFaculty(Long facultyId) {
         log.info("Fetching assignments for faculty: {}", facultyId);
-        
+
         List<Assignment> assignments = assignmentRepository.findByCreatedByUserId(facultyId);
         return assignments.stream()
                 .map(AssignmentDTO::fromEntity)
@@ -192,20 +196,17 @@ public class AssignmentService {
     public AssignmentDTO updateAssignmentStatus(
             Long assignmentId,
             String status,
-            Long facultyUserId
-    ) {
+            Long facultyUserId) {
         log.info("Updating assignment {} status to: {}", assignmentId, status);
 
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Assignment not found with ID: " + assignmentId
-                ));
+                        "Assignment not found with ID: " + assignmentId));
 
         // Verify faculty owns this assignment
         if (!assignment.getCreatedByUserId().equals(facultyUserId)) {
             throw new UnauthorizedException(
-                    "You are not authorized to modify this assignment"
-            );
+                    "You are not authorized to modify this assignment");
         }
 
         assignment.setStatus(Assignment.AssignmentStatus.valueOf(status.toUpperCase()));
@@ -224,14 +225,12 @@ public class AssignmentService {
 
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Assignment not found with ID: " + assignmentId
-                ));
+                        "Assignment not found with ID: " + assignmentId));
 
         // Verify faculty owns this assignment
         if (!assignment.getCreatedByUserId().equals(facultyUserId)) {
             throw new UnauthorizedException(
-                    "You are not authorized to delete this assignment"
-            );
+                    "You are not authorized to delete this assignment");
         }
 
         // Soft delete
@@ -285,14 +284,12 @@ public class AssignmentService {
 
             if (!response.isSuccess() || response.getData() == null) {
                 throw new ResourceNotFoundException(
-                        "Batch-Course-Subject not found with ID: " + batchCourseSubjectId
-                );
+                        "Batch-Course-Subject not found with ID: " + batchCourseSubjectId);
             }
         } catch (Exception e) {
             log.error("Failed to validate batch-course-subject: {}", batchCourseSubjectId, e);
             throw new ResourceNotFoundException(
-                    "Failed to validate batch-course-subject: " + e.getMessage()
-            );
+                    "Failed to validate batch-course-subject: " + e.getMessage());
         }
     }
 
@@ -306,8 +303,7 @@ public class AssignmentService {
 
             if (!response.isSuccess() || !Boolean.TRUE.equals(response.getData())) {
                 throw new UnauthorizedException(
-                        "Faculty is not assigned to this subject"
-                );
+                        "Faculty is not assigned to this subject");
             }
         } catch (UnauthorizedException e) {
             throw e;
@@ -315,8 +311,33 @@ public class AssignmentService {
             log.error("Failed to validate faculty assignment: faculty={}, bcs={}",
                     facultyId, batchCourseSubjectId, e);
             throw new UnauthorizedException(
-                    "Failed to validate faculty assignment: " + e.getMessage()
-            );
+                    "Failed to validate faculty assignment: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Publish assignment created event to RabbitMQ
+     */
+    private void publishAssignmentCreatedEvent(Assignment assignment, Long facultyUserId) {
+        try {
+            // For now, we'll use faculty ID as name.
+            // TODO: Call User Service to get faculty name if needed
+            String facultyName = "Faculty-" + facultyUserId;
+
+            AssignmentCreatedEvent event = new AssignmentCreatedEvent(
+                    assignment.getAssignmentId(),
+                    assignment.getBatchCourseSubjectId(),
+                    assignment.getTitle(),
+                    assignment.getDescription(),
+                    assignment.getDueDate(),
+                    facultyUserId,
+                    facultyName);
+
+            eventPublisher.publishAssignmentCreated(event);
+            log.info("Published assignment created event for assignment: {}", assignment.getAssignmentId());
+        } catch (Exception e) {
+            log.error("Failed to publish assignment created event", e);
+            // Don't throw - event publishing failure shouldn't break assignment creation
         }
     }
 
@@ -326,10 +347,8 @@ public class AssignmentService {
     public boolean isAssignmentOverdue(Long assignmentId) {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Assignment not found with ID: " + assignmentId
-                ));
+                        "Assignment not found with ID: " + assignmentId));
 
         return LocalDateTime.now().isAfter(assignment.getDueDate());
     }
 }
-
