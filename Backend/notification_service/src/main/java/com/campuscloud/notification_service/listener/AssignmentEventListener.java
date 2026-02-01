@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -34,18 +35,19 @@ public class AssignmentEventListener {
         log.info("Received assignment created event: {}", event);
 
         try {
-            // TODO: Call Academic Service to get list of students for this
-            // batch_course_subject
-            // For now, using hardcoded student IDs for testing
+            // Get subject name from Academic Service
+            String subjectName = getSubjectName(event.getBatchCourseSubjectId());
+
+            // Get list of students for this batch_course_subject
             List<Long> studentIds = getStudentsByBatchCourseSubject(event.getBatchCourseSubjectId());
 
             // Create notification for each student
             for (Long studentId : studentIds) {
                 // Format the notification message
                 String title = "New Assignment: " + event.getTitle();
-                String message = String.format("%s has assigned \"%s\". Deadline: %s",
-                        event.getFacultyName(),
+                String message = String.format("New Assignment: %s assigned for %s. Deadline: %s",
                         event.getTitle(),
+                        subjectName,
                         event.getDeadline().format(DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")));
 
                 // Save notification to database
@@ -67,6 +69,49 @@ public class AssignmentEventListener {
 
         } catch (Exception e) {
             log.error("Error processing assignment created event", e);
+        }
+    }
+
+    /**
+     * Get subject name from batch_course_subject_id
+     */
+    private String getSubjectName(Long batchCourseSubjectId) {
+        try {
+            log.info("Fetching subject name for batch-course-subject: {}", batchCourseSubjectId);
+
+            ApiResponse<Map<String, Object>> response = academicServiceClient
+                    .getBatchCourseSubjectDetails(batchCourseSubjectId);
+
+            if (response.isSuccess() && response.getData() != null) {
+                Map<String, Object> data = response.getData();
+
+                // Try to get subject name from nested subject object
+                if (data.containsKey("subject") && data.get("subject") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> subject = (Map<String, Object>) data.get("subject");
+                    String subjectName = (String) subject.get("subjectName");
+                    if (subjectName != null) {
+                        log.info("Found subject name: {}", subjectName);
+                        return subjectName;
+                    }
+                }
+
+                // Fallback: try to get subjectName directly
+                if (data.containsKey("subjectName")) {
+                    String subjectName = (String) data.get("subjectName");
+                    log.info("Found subject name (direct): {}", subjectName);
+                    return subjectName;
+                }
+
+                log.warn("Subject name not found in response for batch-course-subject: {}", batchCourseSubjectId);
+                return "Subject"; // Fallback default
+            } else {
+                log.warn("Failed to get batch-course-subject details: {}", batchCourseSubjectId);
+                return "Subject"; // Fallback default
+            }
+        } catch (Exception e) {
+            log.error("Error fetching subject name from Academic Service", e);
+            return "Subject"; // Fallback default
         }
     }
 

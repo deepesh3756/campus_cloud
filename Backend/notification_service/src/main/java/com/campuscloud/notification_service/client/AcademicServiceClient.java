@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Feign Client to communicate with Academic Service
@@ -18,4 +19,10 @@ public interface AcademicServiceClient {
      */
     @GetMapping("/api/academic/batch-course-subject/{bcsId}/students")
     ApiResponse<List<Long>> getEnrolledStudentIds(@PathVariable("bcsId") Long bcsId);
+
+    /**
+     * Get batch-course-subject details including subject information
+     */
+    @GetMapping("/api/academic/batch-course-subject/{bcsId}")
+    ApiResponse<Map<String, Object>> getBatchCourseSubjectDetails(@PathVariable("bcsId") Long bcsId);
 }

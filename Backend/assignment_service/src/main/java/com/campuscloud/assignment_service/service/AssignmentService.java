@@ -172,19 +172,16 @@ public class AssignmentService {
             Long assignmentId,
             CreateAssignmentRequest request,
             MultipartFile file,
-            Long facultyUserId
-    ) {
+            Long facultyUserId) {
         log.info("Updating assignment: {} by faculty: {}", assignmentId, facultyUserId);
 
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Assignment not found with ID: " + assignmentId
-                ));
+                        "Assignment not found with ID: " + assignmentId));
 
         if (!assignment.getCreatedByUserId().equals(facultyUserId)) {
             throw new UnauthorizedException(
-                    "You are not authorized to modify this assignment"
-            );
+                    "You are not authorized to modify this assignment");
         }
 
         Long bcsId = assignment.getBatchCourseSubjectId();
@@ -202,8 +199,7 @@ public class AssignmentService {
             FileUploadResponse fileResponse = cloudinaryService.uploadAssignmentFile(
                     file,
                     bcsId,
-                    assignment.getAssignmentId()
-            );
+                    assignment.getAssignmentId());
             assignment.setFileName(fileResponse.getFileName());
             assignment.setFilePath(fileResponse.getFileUrl());
             assignment.setMimeType(fileResponse.getMimeType());
