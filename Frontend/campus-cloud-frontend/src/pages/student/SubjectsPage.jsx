@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../../hooks/useAuth";
 import assignmentService from "../../services/api/assignmentService";
+import StudentBreadcrumb from "../../components/common/StudentBreadcrumb";
 
 const SubjectsPage = () => {
   const location = useLocation();
@@ -91,6 +92,12 @@ const SubjectsPage = () => {
   return (
     <div className="container-fluid">
       <div className="mb-3">
+        <StudentBreadcrumb
+          items={[
+            { label: "Home", to: "/student" },
+            { label: "Subjects" },
+          ]}
+        />
         <h2 className="fw-semibold">Subjects</h2>
       </div>
 

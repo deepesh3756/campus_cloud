@@ -32,21 +32,6 @@ CREATE TABLE users (
     INDEX idx_role_status (role, status)
 ) ENGINE=InnoDB;
 
-INSERT INTO users
-(username, password_hash, role, status)
-VALUES
--- Admin
-('admin1',   '$2a$dummyhash6', 'ADMIN', 'ACTIVE'),
-
--- Faculty
-('faculty1', '$2a$dummyhash4', 'FACULTY', 'ACTIVE'),
-('faculty2', '$2a$dummyhash5', 'FACULTY', 'ACTIVE'),
-('faculty3', '$2a$dummyhash7', 'FACULTY', 'ACTIVE'),
-
--- Students
-('student1', '$2a$dummyhash1', 'STUDENT', 'ACTIVE'),
-('student2', '$2a$dummyhash2', 'STUDENT', 'ACTIVE'),
-('student3', '$2a$dummyhash3', 'STUDENT', 'ACTIVE');
 
 CREATE TABLE admins (
     admin_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -74,24 +59,6 @@ CREATE TABLE admins (
     INDEX idx_students_user (user_id)
 ) ENGINE=InnoDB;
 
-INSERT INTO admins (
-    user_id,
-    first_name,
-    last_name,
-    email,
-    mobile,
-    gender,
-    profile_picture_url
-) VALUES
-(
-    1,
-    'System',
-    'Admin',
-    'admin@example.com',
-    '9000000000',
-    'OTHER',
-    NULL
-);
 
 CREATE TABLE faculties (
     faculty_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -119,42 +86,6 @@ CREATE TABLE faculties (
     INDEX idx_faculties_user (user_id)
 ) ENGINE=InnoDB;
 
-INSERT INTO faculties (
-    user_id,
-    first_name,
-    last_name,
-    email,
-    mobile,
-    gender,
-    profile_picture_url
-) VALUES
-(
-    2,
-    'Pankaj',
-    'Jagasia',
-    'pankaj.jagasia@example.com',
-    '9123456780',
-    'MALE',
-    NULL
-),
-(
-    3,
-    'Eileen',
-    'Bartakke',
-    'eileen.bartakke@example.com',
-    '9123456781',
-    'FEMALE',
-    NULL
-),
-(
-    4,
-    'Vishwanath',
-    'K',
-    'vishwanath.k@example.com',
-    '9123456782',
-    'MALE',
-    NULL
-);
 
 CREATE TABLE students (
     student_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -193,46 +124,7 @@ CREATE TABLE students (
     INDEX idx_prn (prn)
 ) ENGINE=InnoDB;
 
-INSERT INTO students (
-    user_id,
-    prn,
-    first_name,
-    last_name,
-    email,
-    mobile,
-    gender,
-    profile_picture_url
-) VALUES
-(
-    5,
-    'PRN251001',
-    'Aarav',
-    'Sharma',
-    'aarav.sharma@example.com',
-    '9876543210',
-    'MALE',
-    NULL
-),
-(
-    6,
-    'PRN251002',
-    'Riya',
-    'Patel',
-    'riya.patel@example.com',
-    '9876543211',
-    'FEMALE',
-    NULL
-),
-(
-    7,
-    'PRN252001',
-    'Kabir',
-    'Mehta',
-    'kabir.mehta@example.com',
-    '9876543212',
-    'MALE',
-    NULL
-);
+
 
 -- -----------------------------------------------------
 -- AUTOMATIC ACCOUNT DELETION
@@ -256,32 +148,7 @@ BEGIN
 END$$
 DELIMITER ;
 
-SHOW EVENTS;
 
-INSERT INTO users (
-    username,
-    password_hash,
-    role,
-    created_at,
-    updated_at
-) 
-VALUES (
-    'old_user_01',
-    '$2a$dummyOldHash',
-    'STUDENT',
-    CURRENT_TIMESTAMP - INTERVAL 8 MONTH,
-    CURRENT_TIMESTAMP - INTERVAL 8 MONTH
-);
-
-SELECT
-    user_id,
-    username,
-    role,
-    created_at,
-    status
-FROM users
-WHERE status != 'INACTIVE'
-AND created_at < CURRENT_TIMESTAMP - INTERVAL 6 MONTH;
 
 -- -----------------------------------------------------
 -- REFRESH TOKENS
@@ -552,91 +419,137 @@ CREATE TABLE faculty_assignments (
 INSERT INTO batches
 (batch_id, batch_name, start_date, end_date, status, description)
 VALUES
-(251, 'FEB_2025', '2025-02-04', '2025-08-22', 'COMPLETED', 'February 2025 batch'),
-(252, 'AUG_2025', '2025-08-22', '2026-02-04', 'ACTIVE', 'August 2025 batch');
+(2502, 'FEB_2025', '2025-02-04', '2025-08-22', 'COMPLETED', 'February 2025 batch'),
+(2508, 'AUG_2025', '2025-08-22', '2026-02-04', 'ACTIVE', 'August 2025 batch');
 
-ALTER TABLE batches AUTO_INCREMENT = 253;
 
 INSERT INTO courses
-(course_code, course_name, duration_months, status)
+(course_id, course_code, course_name, duration_months, status)
 VALUES
-('PG-DAC',  'PG Diploma in Advanced Computing',        6, 'ACTIVE'),
-('PG-DBDA', 'PG Diploma in Big Data Analytics',        6, 'ACTIVE'),
-('PG-DTSS', 'PG Diploma in IT Infrastructure, Systems and Security', 6, 'ACTIVE'),
-('PG-DAI',  'PG Diploma in Artificial Intelligence',  6, 'ACTIVE');
+(40120,'PG-DAC',  'PG Diploma in Advanced Computing',        6, 'ACTIVE'),
+(40220,'PG-DBDA', 'PG Diploma in Big Data Analytics',        6, 'ACTIVE'),
+(40320,'PG-DAI', 'PG Diploma in Aritificial Intelligence',        6, 'ACTIVE'),
+(40420,'PG-DESD', 'PG Diploma in Embedded System Design', 6, 'ACTIVE'),
+(40520,'PG-DITISS',  'PG Diploma in IT Infrastructure, Systems and Security',  6, 'ACTIVE'),
+(40620,'PG-DVLSI',  'PG Diploma in VLSI Design',  6, 'ACTIVE');
 
 INSERT INTO subjects
 (subject_code, subject_name)
 VALUES
-('COMM101', 'Effective Communication'),
-('APT101',  'Aptitude'),
-('ADS201',  'ADS Using Java'),
-('CPP101',  'C++ Programming'),
-('COS201',  'COSSDM – Concepts of Software Development Models'),
-('COS202',  'COSSDM – Git and DevOps'),
-('COS203',  'COSSDM – Software Design Models'),
-('COS204',  'COSSDM – Software Testing'),
-('DBT101',  'Database Technologies'),
-('OOP201',  'Object-Oriented Programming with Java'),
-('WEB301',  'Web Based Java Programming'),
-('WEB101',  'Web Programming Technologies');
+('DAC01', 'Concepts of Operating Systems and Software development methodologies'),
+('DAC02',  'C++ Programming'),
+('DAC03',  'Database Technologies'),
+('DAC04',  'Object-Oriented Programming with Java'),
+('DAC05',  'Data Structures & Algorithms'),
+('DAC06',  'Web Programming Technologies'),
+('DAC07',  'Web Based Java'),
+('DAC08',  'Microsoft DotNet Technology'),
+('DBDA01',  'Linux Programming'),
+('DBDA02',  'Data collection and DBMS'),
+('DBDA03',  'Python and R Programming'),
+('DBDA04',  'Java Programming'),
+('DBDA05',  'Big Data Technologies'),
+('DBDA06',  'Advanced Analysis using Statistics'),
+('DBDA07',  'Practical Machine Learning'),
+('DBDA08',  'Data Visualization'),
+('DAI01',  'Fundamentals of Artificial Intelligence'),
+('DAI02',  'Java Programming'),
+('DAI03',  'Advanced Programming using Python'),
+('DAI04',  'Data Analytics'),
+('DAI05',  'Practical Machine Learning'),
+('DAI06',  'Deep Neural Networks'),
+('DAI07',  'Natural Language Processing and Computer Vision'),
+('DAI08',  'AI Compute Platforms, Applications & Trends'),
+('DESD01',  'Embedded C Programming'),
+('DESD02',  'Data Structures and Algorithms'),
+('DESD03',  'Microcontroller Programming and Interfacing'),
+('DESD04',  'Embedded Operating Systems'),
+('DESD05',  'Embedded Device Driver'),
+('DESD06',  'Real-time Operating Systems'),
+('DESD07',  'Internet of Things'),
+('DITISS01',  'Fundamentals of Computer Networks'),
+('DITISS02',  'Programming Concepts'),
+('DITISS03',  'Concepts of Operating System and Administration'),
+('DITISS04',  'Network Defence and Countermeasures (NDC)'),
+('DITISS05',  'Compliance Audit'),
+('DITISS06',  'Security Concepts'),
+('DITISS07',  'Cyber Forensics'),
+('DITISS08',  'Public Key Infrastructure'),
+('DITISS09',  'IT Infrastructure Management & DevOps'),
+('DVLSI01',  'Advanced Digital Design'),
+('DVLSI02',  'System Architecture'),
+('DVLSI03',  'Verilog HDL'),
+('DVLSI04',  'HDL Simulation and Synthesis'),
+('DVLSI05',  'System Verilog'),
+('DVLSI06',  'Verification using UVM'),
+('DVLSI07',  'Programming Fundamentals for Design and Verification'),
+('DVLSI08',  'CMOS VLSI and Aspects of ASIC Design');
+
 
 INSERT INTO batch_courses
 (batch_id, course_id, start_date, end_date)
 VALUES
--- FEB_2025 batch (batch_id = 251)
-(251, 1, '2025-02-04', '2025-08-22'), -- PG-DAC
-(251, 2, '2025-02-04', '2025-08-22'), -- PG-DBDA
-(251, 3, '2025-02-04', '2025-08-22'), -- PG-DTSS
-(251, 4, '2025-02-04', '2025-08-22'), -- PG-DAI
+-- FEB_2025 batch (batch_id = 2502)
+(2502, 40120, '2025-02-04', '2025-08-22'), -- FEB 2025 PG-DAC 1
+(2502, 40220, '2025-02-04', '2025-08-22'), -- FEB 2025 PG-DBDA 2
+(2502, 40320, '2025-02-04', '2025-08-22'), -- FEB 2025 PG-DAI 3
+(2502, 40420, '2025-02-04', '2025-08-22'), -- FEB 2025 PG-DESD 4
+(2502, 40520, '2025-02-04', '2025-08-22'), -- FEB 2025 PG-DITISS 5
+(2502, 40620, '2025-02-04', '2025-08-22'), -- FEB 2025 PG-DVLSI 6
 
--- AUG_2025 batch (batch_id = 252)
-(252, 1, '2025-08-22', '2026-02-04'), -- PG-DAC
-(252, 2, '2025-08-22', '2026-02-04'), -- PG-DBDA
-(252, 3, '2025-08-22', '2026-02-04'), -- PG-DTSS
-(252, 4, '2025-08-22', '2026-02-04'); -- PG-DAI
+
+-- AUG_2025 batch (batch_id = 2508)
+(2508, 40120, '2025-08-22', '2026-02-04'), -- AUG 2025 PG-DAC 7
+(2508, 40220, '2025-08-22', '2026-02-04'), -- AUG 2025 PG-DBDA 8
+(2508, 40320, '2025-08-22', '2026-02-04'), -- AUG 2025 PG-DA 9
+(2508, 40420, '2025-08-22', '2026-02-04'), -- AUG 2025 PG-DESD 10
+(2508, 40520, '2025-08-22', '2026-02-04'), -- AUG 2025 PG-DITISS 11
+(2508, 40620, '2025-08-22', '2026-02-04'); -- AUG 2025 PG-DVLSI 12
 
 INSERT INTO batch_course_subjects
 (batch_course_id, subject_id)
 VALUES
--- FEB_2025 batch
-(1,  1),   -- PG-DAC: Effective Communication
-(1, 11),   -- PG-DAC: Web Based Java Programming
-(2,  1),   -- PG-DBDA: Effective Communication
-(3,  1),   -- PG-DTSS: Effective Communication
-(4,  1),   -- PG-DAI: Effective Communication
+-- FEB 2025 PG-DAC 1
+(1,  1), (1, 2), (1, 3), (1, 4), (1,  5),(1,6) ,(1,7), (1,8),
 
--- AUG_2025 batch
-(5,  1),   -- PG-DAC: Effective Communication
-(5, 11),   -- PG-DAC: Web Based Java Programming
-(6,  1),   -- PG-DBDA: Effective Communication
-(7,  1),   -- PG-DTSS: Effective Communication
-(8,  1);   -- PG-DAI: Effective Communication
+-- FEB 2025 PG-DBDA 2
+(2,  9), (2, 10), (2, 11), (2, 12), (2,  13),(2,14) ,(2,15), (2,16),
 
--- Student enrollments (user_ids come from users_db)
-INSERT INTO student_enrollments (user_id, batch_course_id, status)
-VALUES
-(5, 1, 'ACTIVE'), -- Aarav in FEB_2025 PG-DAC
-(6, 2, 'ACTIVE'), -- Riya in FEB_2025 PG-DBDA
-(7, 5, 'ACTIVE'); -- Kabir in AUG_2025 PG-DAC
+ -- FEB 2025 PG-DAI 3
+ (3,  17), (3, 18), (3, 19), (3, 20), (3,  21),(3,22) ,(3,23), (3,24),
+ 
+ -- FEB 2025 PG-DESD 4
+  (4, 25), (4, 26), (4, 27), (4, 28), (4,  29),(4,30) ,(4,31),
+  
+  -- FEB 2025 PG-DITISS 5
+   (5, 32), (5, 33), (5, 34), (5, 35), (5,  36),(5,37) ,(5,38),(5,39),(5,40),
+  
+ -- FEB 2025 PG-DVLSI 6 
+ (6, 41), (6, 42), (6, 43), (6, 44), (6,  45),(6,46) ,(6,48),
 
--- Faculty assignments (user_ids come from users_db)
-INSERT INTO faculty_assignments
-(user_id, batch_course_subject_id, status)
-VALUES
--- FEB_2025 assignments
-(2, 1, 'ACTIVE'), (3, 1, 'ACTIVE'), -- Faculty 2,3 for bcs_id=1
-(2, 2, 'ACTIVE'), -- Faculty 2 for bcs_id=2
-(2, 3, 'ACTIVE'), (3, 3, 'ACTIVE'),
-(2, 4, 'ACTIVE'), (3, 4, 'ACTIVE'),
-(2, 5, 'ACTIVE'), (3, 5, 'ACTIVE'),
+-- AUG 2025 PG-DAC 7
+(7,  1), (7,  2), (7,  3), (7,  4), (7,  5), (7,  6), (7,  7), (7,  8),
 
--- AUG_2025 assignments
-(2, 6, 'ACTIVE'), (3, 6, 'ACTIVE'),
-(2, 7, 'ACTIVE'),
-(2, 8, 'ACTIVE'), (3, 8, 'ACTIVE'),
-(2, 9, 'ACTIVE'), (3, 9, 'ACTIVE'),
-(2, 10, 'ACTIVE'), (3, 10, 'ACTIVE');
+-- AUG 2025 PG-DBDA 8
+(8,  9), (8, 10), (8, 11), (8, 12), (8, 13), (8, 14), (8, 15), (8, 16),
+
+-- AUG 2025 PG-DAI 9
+(9, 17), (9, 18), (9, 19), (9, 20), (9, 21), (9, 22), (9, 23), (9, 24),
+
+ -- AUG 2025 PG-DESD 10
+(10, 25), (10, 26), (10, 27), (10, 28), (10, 29), (10, 30), (10, 31),
+
+  -- AUG 2025 PG-DITISS 11
+(11, 32), (11, 33), (11, 34), (11, 35), (11, 36),(11, 37), (11, 38), (11, 39), (11, 40),
+
+ -- AUG 2025 PG-DVLSI 12 
+(12, 41), (12, 42), (12, 43), (12, 44), (12, 45),(12, 46), (12, 48);
+
+
+
+
+
+
 
 -- =====================================================
 -- DATABASE 3 - ASSIGNMENT_DB
@@ -749,128 +662,6 @@ CREATE TABLE submissions (
     INDEX idx_status (status)
 ) ENGINE=InnoDB;
 
-/*
-DELIMITER $$
-CREATE TRIGGER trg_create_submissions_on_assignment
-AFTER INSERT ON assignments
-FOR EACH ROW
-BEGIN
-    INSERT INTO submissions (
-        assignment_id,
-        student_user_id,
-        status
-    )
-    SELECT
-        NEW.assignment_id,
-        s.user_id,          -- student_user_id
-        'NOT_SUBMITTED'
-    FROM students s
-    JOIN batch_course_subjects bcs
-        ON bcs.batch_course_subject_id = NEW.batch_course_subject_id
-    WHERE s.batch_course_id = bcs.batch_course_id;
-END$$
-DELIMITER ;
-*/
-
-/*
-DELIMITER $$
-CREATE TRIGGER trg_set_submitted_at
-BEFORE UPDATE ON submissions
-FOR EACH ROW
-BEGIN
-    IF
-        OLD.status = 'NOT_SUBMITTED'
-        AND NEW.status IN ('SUBMITTED', 'EVALUATED')
-        AND NEW.submitted_at IS NULL
-    THEN
-        SET NEW.submitted_at = CURRENT_TIMESTAMP;
-    END IF;
-END$$
-DELIMITER ;
-*/
-
-INSERT INTO assignments (
-    batch_course_subject_id,
-    created_by_user_id,
-    title,
-    description,
-    file_name,
-    file_path,
-    mime_type,
-    due_date,
-    status
-) VALUES
--- FEB_2025 – DAC – Effective Communication (bcs_id = 1)
-
-(
-    1,
-    2,
-    'Communication Basics Assignment',
-    'Write a short essay explaining the importance of effective communication in professional environments.',
-    'ec_comm_basics.pdf',
-    '/assignments/ec_comm_basics.pdf',
-    'application/pdf',
-    '2025-03-15 23:59:59',
-    'ACTIVE'
-),
-(
-    1,
-    2,
-    'Listening Skills Exercise',
-    'Prepare a report on active listening techniques with real-life examples.',
-    'ec_listening_skills.pdf',
-    '/assignments/ec_listening_skills.pdf',
-    'application/pdf',
-    '2025-03-25 23:59:59',
-    'ACTIVE'
-),
-(
-    1,
-    2,
-    'Presentation Skills Task',
-    'Create a 5-minute presentation on a technical topic of your choice.',
-    'ec_presentation_skills.pdf',
-    '/assignments/ec_presentation_skills.pdf',
-    'application/pdf',
-    '2025-04-05 23:59:59',
-    'ACTIVE'
-),
-(
-    1,
-    2,
-    'Group Discussion Reflection',
-    'Submit a reflection document describing your experience in a group discussion session.',
-    'ec_group_discussion.pdf',
-    '/assignments/ec_group_discussion.pdf',
-    'application/pdf',
-    '2025-04-15 23:59:59',
-    'ACTIVE'
-),
-
--- FEB_2025 – DAC – Web Based Java Programming (bcs_id = 2)
-
-(
-    2,
-    2,
-    'Servlet Basics Assignment',
-    'Implement a basic servlet that handles GET and POST requests.',
-    'wbjp_servlet_basics.pdf',
-    '/assignments/wbjp_servlet_basics.pdf',
-    'application/pdf',
-    '2025-03-20 23:59:59',
-    'ACTIVE'
-),
-(
-    2,
-    2,
-    'JSP Form Handling Task',
-    'Create a JSP-based form and process user input on the server side.',
-    'wbjp_jsp_forms.pdf',
-    '/assignments/wbjp_jsp_forms.pdf',
-    'application/pdf',
-    '2025-04-10 23:59:59',
-    'ACTIVE'
-);
 
 -- =====================================================
 -- DATABASE 4 - NOTIFICATION_DB
@@ -911,58 +702,5 @@ BEGIN
     AND read_at <= CURRENT_TIMESTAMP;
 END$$
 DELIMITER ;
-
--- Sample notifications for user_id = 12345 (Student)
-INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, is_read, created_at, read_at)
-VALUES 
--- Read notification 2
-(5, 'NEW_ASSIGNMENT', 'New Assignment: Web Development Project', 'Prof. Singh has assigned "Build REST API". Deadline: Feb 12, 2026', 1, 'ASSIGNMENT', true, '2026-01-29 15:30:00', '2026-01-29 16:00:00'),
-
--- Read notification 1
-(5, 'NEW_ASSIGNMENT', 'New Assignment: Database Lab 3', 'Dr. Patel has assigned "SQL Queries Practice". Deadline: Feb 08, 2026', 2, 'ASSIGNMENT', true, '2026-01-30 09:00:00', '2026-01-30 10:15:00'),
-
--- Unread notification 2
-(5, 'NEW_ASSIGNMENT', 'New Assignment: Data Structures Quiz 3', 'Dr. Sharma has posted a new quiz on Graph Algorithms. Deadline: Feb 05, 2026', 3, 'ASSIGNMENT', false, '2026-01-31 14:30:00', NULL),
-
--- Unread notification 1
-(5, 'NEW_ASSIGNMENT', 'New Assignment: Java Programming Lab 5', 'Prof. Kumar has assigned "Implement Binary Search Tree". Deadline: Feb 10, 2026', 4, 'ASSIGNMENT', false, '2026-01-31 10:00:00', NULL);
-
--- Sample notifications for user_id = 12346 (Another Student)
-INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type, is_read, created_at, read_at)
-VALUES 
-(6, 'NEW_ASSIGNMENT', 'New Assignment: Java Programming Lab 5', 'Prof. Kumar has assigned "Implement Binary Search Tree". Deadline: Feb 10, 2026', 3, 'ASSIGNMENT', false, '2026-01-31 10:00:00', NULL),
-
-(6, 'NEW_ASSIGNMENT', 'New Assignment: Operating Systems Assignment', 'Dr. Reddy has posted "Process Scheduling Algorithms". Deadline: Feb 15, 2026', 2, 'ASSIGNMENT', true, '2026-01-31 11:00:00', '2026-01-31 12:00:00');
-
--- Check all notifications
-SELECT * FROM notifications;
-
--- Get unread notifications for user 12345
-SELECT * FROM notifications 
-WHERE user_id = 5 AND is_read = false
-ORDER BY created_at DESC;
-
--- Count unread notifications per user
-SELECT user_id, COUNT(*) as unread_count 
-FROM notifications 
-WHERE is_read = false 
-GROUP BY user_id;
-
--- Get all notifications for a specific assignment
-SELECT * FROM notifications 
-WHERE reference_type = 'ASSIGNMENT' AND reference_id = 2;
-
--- ===================== testing ==========================
-
--- Mark a notification as read
-UPDATE notifications 
-SET is_read = true, read_at = CURRENT_TIMESTAMP 
-WHERE id = 3;
-
--- Get latest 10 notifications for a user
-SELECT * FROM notifications 
-WHERE user_id = 5 
-ORDER BY created_at DESC 
-LIMIT 10;
 
 

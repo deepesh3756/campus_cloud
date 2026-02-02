@@ -40,9 +40,11 @@ const AssignmentsPage = () => {
         if (!mounted) return;
 
         const list = (Array.isArray(data) ? data : []).slice().sort((a, b) => {
-          const da = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const db = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return db - da;
+          const da = a?.createdAt ? new Date(a.createdAt).getTime() : Number.POSITIVE_INFINITY;
+          const db = b?.createdAt ? new Date(b.createdAt).getTime() : Number.POSITIVE_INFINITY;
+          const na = Number.isFinite(da) ? da : Number.POSITIVE_INFINITY;
+          const nb = Number.isFinite(db) ? db : Number.POSITIVE_INFINITY;
+          return na - nb;
         });
 
         setAssignments(list);

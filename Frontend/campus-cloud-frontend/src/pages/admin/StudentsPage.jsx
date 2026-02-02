@@ -42,6 +42,11 @@ const StudentsPage = () => {
   const [modalMode, setModalMode] = useState("add");
   const [activeUserId, setActiveUserId] = useState(null);
 
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState(null);
+
   const [username, setUsername] = useState("");
   const [originalUsername, setOriginalUsername] = useState("");
   const [prn, setPrn] = useState("");
@@ -289,6 +294,22 @@ const StudentsPage = () => {
     resetStudentForm();
   };
 
+  const resetImportForm = () => {
+    setImportFile(null);
+    setImportError(null);
+  };
+
+  const openImportModal = () => {
+    resetImportForm();
+    setIsImportModalOpen(true);
+  };
+
+  const closeImportModal = () => {
+    if (importing) return;
+    setIsImportModalOpen(false);
+    resetImportForm();
+  };
+
   const validateStudentForm = () => {
     const next = {};
     const u = String(username || "").trim();
@@ -477,8 +498,206 @@ const StudentsPage = () => {
     }
   };
 
-  const handleImportCsv = () => {
-    window.alert("CSV import is not implemented yet.");
+  const downloadSampleCsv = () => {
+    const header = [
+      "username",
+      "password",
+      "prn",
+      "firstName",
+      "lastName",
+      "email",
+      "mobile",
+      "gender",
+      "profilePictureUrl",
+    ].join(",");
+    const row1 = [
+      "prn230000000001",
+      "prn230000000001",
+      "230000000001",
+      "Asha",
+      "Patil",
+      "asha.patil@example.com",
+      "9999999991",
+      "FEMALE",
+      "",
+    ].join(",");
+    const row2 = [
+      "prn230000000002",
+      "prn230000000002",
+      "230000000002",
+      "Rohan",
+      "Sharma",
+      "rohan.sharma@example.com",
+      "9999999992",
+      "MALE",
+      "",
+    ].join(",");
+
+    const csv = `${header}\n${row1}\n${row2}\n`;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "students_sample.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const parseCsv = (text) => {
+    const s = String(text || "").replace(/^\uFEFF/, "");
+    const rows = [];
+    let row = [];
+    let field = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < s.length; i += 1) {
+      const ch = s[i];
+      if (ch === '"') {
+        const next = s[i + 1];
+        if (inQuotes && next === '"') {
+          field += '"';
+          i += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch === "," && !inQuotes) {
+        row.push(field);
+        field = "";
+      } else if ((ch === "\n" || ch === "\r") && !inQuotes) {
+        if (ch === "\r" && s[i + 1] === "\n") i += 1;
+        row.push(field);
+        field = "";
+        if (row.some((c) => String(c || "").trim() !== "")) rows.push(row);
+        row = [];
+      } else {
+        field += ch;
+      }
+    }
+
+    row.push(field);
+    if (row.some((c) => String(c || "").trim() !== "")) rows.push(row);
+    return rows;
+  };
+
+  const normalizeHeader = (h) => String(h || "").trim().toLowerCase();
+
+  const buildBulkEntriesFromCsv = (csvText) => {
+    const rows = parseCsv(csvText);
+    if (!rows.length) throw new Error("CSV is empty");
+    const headers = rows[0].map(normalizeHeader);
+    const dataRows = rows.slice(1);
+    if (!dataRows.length) throw new Error("CSV has no data rows");
+
+    const idx = (name) => headers.indexOf(normalizeHeader(name));
+    const get = (r, name) => {
+      const i = idx(name);
+      if (i < 0) return "";
+      return r[i] ?? "";
+    };
+
+    const required = ["prn", "firstName", "lastName"];
+    const missing = required.filter((h) => idx(h) < 0);
+    if (missing.length) throw new Error(`Missing required columns: ${missing.join(", ")}`);
+
+    return dataRows.map((r, ri) => {
+      const prnValue = String(get(r, "prn") || "").trim();
+      if (!prnValue) throw new Error(`Row ${ri + 2}: prn is required`);
+
+      const usernameValue = String(get(r, "username") || "").trim() || prnValue;
+      const passwordValue = String(get(r, "password") || "").trim() || prnValue;
+
+      const firstNameValue = String(get(r, "firstName") || "").trim();
+      const lastNameValue = String(get(r, "lastName") || "").trim();
+      if (!firstNameValue) throw new Error(`Row ${ri + 2}: firstName is required`);
+      if (!lastNameValue) throw new Error(`Row ${ri + 2}: lastName is required`);
+
+      const emailValue = String(get(r, "email") || "").trim();
+      const mobileValue = String(get(r, "mobile") || "").trim();
+      const genderRaw = String(get(r, "gender") || "").trim();
+      const genderValue = (genderRaw || "FEMALE").toUpperCase();
+      const profilePictureUrlValue = String(get(r, "profilePictureUrl") || "").trim();
+
+      return {
+        role: "STUDENT",
+        data: {
+          username: usernameValue,
+          password: passwordValue,
+          prn: prnValue,
+          firstName: firstNameValue,
+          lastName: lastNameValue,
+          email: emailValue,
+          mobile: mobileValue,
+          gender: genderValue,
+          profilePictureUrl: profilePictureUrlValue || null,
+        },
+      };
+    });
+  };
+
+  const handleUploadCsv = async () => {
+    if (!selectedBatch || !selectedCourse) {
+      setImportError("Please select batch and course before importing.");
+      return;
+    }
+    if (!importFile) {
+      setImportError("Please choose a CSV file.");
+      return;
+    }
+
+    setImportError(null);
+    setImporting(true);
+
+    try {
+      const csvText = await importFile.text();
+      const entries = buildBulkEntriesFromCsv(csvText);
+
+      const createdUsers = await userService.registerUsersInBulk(entries);
+      const created = Array.isArray(createdUsers) ? createdUsers : [];
+      if (!created.length) {
+        throw new Error("No users were created");
+      }
+
+      const enrollResults = await Promise.allSettled(
+        created.map(async (u) => {
+          const userId = u?.userId;
+          if (!userId) throw new Error("Missing userId");
+          await academicService.enrollStudent({
+            userId,
+            batchId: Number(selectedBatch.batchId),
+            courseId: Number(selectedCourse.courseId),
+          });
+          return userId;
+        })
+      );
+
+      const enrolledCount = enrollResults.filter((r) => r.status === "fulfilled").length;
+      const failedEnroll = enrollResults
+        .map((r, i) => ({ r, i }))
+        .filter(({ r }) => r.status === "rejected")
+        .map(({ i }) => created[i])
+        .filter(Boolean);
+
+      if (failedEnroll.length) {
+        await Promise.allSettled(
+          failedEnroll.map(async (u) => {
+            if (!u?.userId) return;
+            await userService.updateUserStatus(u.userId, "INACTIVE");
+          })
+        );
+      }
+
+      toast.success(`Imported ${created.length} students. Enrolled: ${enrolledCount}.`, { autoClose: 3500 });
+      closeImportModal();
+      await refreshStudents();
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || "Failed to import students";
+      setImportError(msg);
+      toast.error(msg, { autoClose: 4000 });
+    } finally {
+      setImporting(false);
+    }
   };
 
   return (
@@ -630,6 +849,49 @@ const StudentsPage = () => {
         </form>
       </Modal>
 
+      <Modal
+        isOpen={isImportModalOpen}
+        onClose={closeImportModal}
+        title="Import Students (CSV)"
+      >
+        <div className="d-flex flex-column gap-3">
+          <div>
+            <label className="form-label fw-semibold">Upload CSV file</label>
+            <input
+              type="file"
+              className="form-control"
+              accept=".csv,text/csv"
+              disabled={importing}
+              onChange={(e) => {
+                const f = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+                setImportFile(f);
+                setImportError(null);
+              }}
+            />
+            <div className="small text-muted mt-1">
+              Columns: username, password, prn, firstName, lastName, email, mobile, gender, profilePictureUrl
+            </div>
+          </div>
+
+          {importError ? <div className="alert alert-danger py-2 mb-0">{importError}</div> : null}
+
+          <div className="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <button type="button" className="btn btn-outline-secondary" onClick={downloadSampleCsv} disabled={importing}>
+              Download sample CSV
+            </button>
+
+            <div className="d-flex gap-2">
+              <button type="button" className="btn btn-light border" onClick={closeImportModal} disabled={importing}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-primary" onClick={handleUploadCsv} disabled={importing}>
+                {importing ? "Uploading..." : "Upload"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
       <div className="card border-0 shadow-sm" style={{ borderRadius: 14 }}>
         <div className="card-body p-4">
           <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
@@ -686,10 +948,11 @@ const StudentsPage = () => {
               <button
                 type="button"
                 className="btn btn-primary d-inline-flex align-items-center gap-2"
-                onClick={handleImportCsv}
+                onClick={openImportModal}
+                disabled={!selectedBatch || !selectedCourse}
               >
                 <FileUp size={18} />
-                Import from csv
+                Import Students (CSV)
               </button>
             </div>
           </div>

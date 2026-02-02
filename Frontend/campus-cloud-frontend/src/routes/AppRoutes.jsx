@@ -75,7 +75,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />
 
@@ -146,6 +146,9 @@ const AppRoutes = () => {
         <Route path="subjects/new" element={<AddSubjectPage />} />
         <Route path="subjects/:subjectId/edit" element={<AddSubjectPage />} />
         <Route path="subjects/:subjectId" element={<SubjectDetailsPage />} />
+
+        <Route path="assignments" element={<FacultyAssignmentsPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="students" element={<StudentsPage />} />
         <Route path="students/new" element={<RedirectToStudentsAdd />} />
         <Route path="students/:studentId/edit" element={<RedirectToStudentsEdit />} />

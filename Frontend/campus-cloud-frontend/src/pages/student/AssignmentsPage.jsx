@@ -76,7 +76,17 @@ const AssignmentsPage = () => {
           };
         });
 
-        setAssignments(normalized);
+        const sorted = normalized
+          .slice()
+          .sort((l, r) => {
+            const lt = l?.createdDate ? Date.parse(String(l.createdDate)) : Number.POSITIVE_INFINITY;
+            const rt = r?.createdDate ? Date.parse(String(r.createdDate)) : Number.POSITIVE_INFINITY;
+            const ln = Number.isFinite(lt) ? lt : Number.POSITIVE_INFINITY;
+            const rn = Number.isFinite(rt) ? rt : Number.POSITIVE_INFINITY;
+            return ln - rn;
+          });
+
+        setAssignments(sorted);
       } catch (e) {
         if (!mounted) return;
         setError(e);
@@ -129,9 +139,14 @@ const AssignmentsPage = () => {
         {subjectKey ? (
           <StudentBreadcrumb
             items={[
+              { label: "Home", to: "/student" },
+              { label: "Subjects", to: "/student/subjects" },
               {
                 label: subjectNameFromState || subjectKey,
-                to: `/student/subjects?subject=${encodeURIComponent(subjectKey)}`,
+                state: {
+                  subjectName: subjectNameFromState,
+                  batchCourseSubjectId,
+                },
               },
             ]}
           />
@@ -145,9 +160,9 @@ const AssignmentsPage = () => {
             <table className="table align-middle assignments-table">
               <thead className="table-light">
                 <tr>
-                  <th style={{ width: 70 }}>S.No</th>
+                  <th style={{ width: 120 }}>S.No</th>
                   <th>Assignment Name</th>
-                  <th style={{ width: 140 }}>Created Date</th>
+                  <th style={{ width: 130 }}>Created Date</th>
                   <th style={{ width: 120 }}>Due Date</th>
                   <th style={{ width: 130 }}>Status</th>
                   <th style={{ width: 120 }}>Grade</th>
@@ -289,7 +304,16 @@ const AssignmentsPage = () => {
                   remarks: sub?.remarks ?? "NA",
                 };
               });
-              setAssignments(normalized);
+              const sorted = normalized
+                .slice()
+                .sort((l, r) => {
+                  const lt = l?.createdDate ? Date.parse(String(l.createdDate)) : Number.POSITIVE_INFINITY;
+                  const rt = r?.createdDate ? Date.parse(String(r.createdDate)) : Number.POSITIVE_INFINITY;
+                  const ln = Number.isFinite(lt) ? lt : Number.POSITIVE_INFINITY;
+                  const rn = Number.isFinite(rt) ? rt : Number.POSITIVE_INFINITY;
+                  return ln - rn;
+                });
+              setAssignments(sorted);
             }
           } catch {
             toast.error("Failed to submit assignment");

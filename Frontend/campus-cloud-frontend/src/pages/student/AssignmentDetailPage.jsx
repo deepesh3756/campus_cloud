@@ -11,6 +11,65 @@ import { toast } from "react-toastify";
 import { assignmentService } from "../../services/api/assignmentService";
 import { validateFile } from "../../utils/fileValidator";
 
+const sanitizeFilename = (name) => {
+  return String(name || "")
+    .trim()
+    .replace(/[/\\]/g, "_");
+};
+
+const getFilenameFromUrl = (url) => {
+  if (!url) return "";
+  try {
+    const u = new URL(url);
+    const path = u.pathname || "";
+    const base = path.substring(path.lastIndexOf("/") + 1);
+    return decodeURIComponent(base || "");
+  } catch {
+    const s = String(url);
+    const withoutQuery = s.split("?")[0];
+    const base = withoutQuery.substring(withoutQuery.lastIndexOf("/") + 1);
+    return base || "";
+  }
+};
+
+const extensionFromMimeType = (mimeType) => {
+  const m = String(mimeType || "").toLowerCase();
+  if (!m) return "";
+  if (m.includes("pdf")) return ".pdf";
+  if (m.includes("zip")) return ".zip";
+  if (m.includes("msword")) return ".doc";
+  if (m.includes("wordprocessingml")) return ".docx";
+  if (m.includes("vnd.ms-powerpoint")) return ".ppt";
+  if (m.includes("presentationml")) return ".pptx";
+  if (m.includes("plain")) return ".txt";
+  if (m.startsWith("image/")) {
+    const subtype = m.split("/")[1];
+    return subtype ? `.${subtype}` : "";
+  }
+  return "";
+};
+
+const ensureFilenameHasExtension = ({ filename, mimeType, url }) => {
+  const base = sanitizeFilename(filename) || sanitizeFilename(getFilenameFromUrl(url)) || "assignment_attachment";
+  if (/\.[a-z0-9]{1,8}$/i.test(base)) return base;
+  const ext = extensionFromMimeType(mimeType);
+  return ext ? `${base}${ext}` : base;
+};
+
+const triggerBrowserDownload = async ({ url, filename }) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(objectUrl);
+};
+
 const SUBJECT_LABELS = {
   cpp: "C++",
   dbms: "Database Technologies",
@@ -31,6 +90,7 @@ const AssignmentDetailPage = () => {
   const [error, setError] = useState(null);
   const [assignment, setAssignment] = useState(null);
   const [mySubmission, setMySubmission] = useState(null);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -75,13 +135,38 @@ const AssignmentDetailPage = () => {
     ];
   }, [assignment]);
 
-  const previewUrl = useMemo(() => {
-    if (!assignment?.fileUrl) return null;
+  const isPdfAttachment = useMemo(() => {
     const mime = (assignment?.mimeType || "").toLowerCase();
     const name = (assignment?.fileName || "").toLowerCase();
-    const isPdf = mime.includes("pdf") || name.endsWith(".pdf");
-    return isPdf ? assignment.fileUrl : null;
+    return Boolean(assignment?.fileUrl) && (mime.includes("pdf") || name.endsWith(".pdf"));
   }, [assignment]);
+
+  useEffect(() => {
+    let mounted = true;
+    let objectUrl = null;
+
+    (async () => {
+      if (!isPdfAttachment) {
+        setPreviewBlobUrl(null);
+        return;
+      }
+      try {
+        const assignmentId = Number(id);
+        const blob = await assignmentService.getAssignmentPreviewBlob(assignmentId);
+        objectUrl = URL.createObjectURL(blob);
+        if (!mounted) return;
+        setPreviewBlobUrl(objectUrl);
+      } catch {
+        if (!mounted) return;
+        setPreviewBlobUrl(null);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [id, isPdfAttachment]);
 
   const submissionStatus = useMemo(() => {
     const raw = mySubmission?.status ? String(mySubmission.status) : "NOT_SUBMITTED";
@@ -168,11 +253,11 @@ const AssignmentDetailPage = () => {
       {subjectKey ? (
         <StudentBreadcrumb
           items={[
+            { label: "Home", to: "/student" },
+            { label: "Subjects", to: "/student/subjects" },
             {
               label: subjectName || (SUBJECT_LABELS[subjectKey] ?? subjectKey),
-              to: batchCourseSubjectId
-                ? `/student/subjects/${encodeURIComponent(String(batchCourseSubjectId))}`
-                : `/student/subjects?subject=${encodeURIComponent(subjectKey)}`,
+              to: `/student/subjects/${encodeURIComponent(String(subjectKey))}`,
               state: {
                 subjectKey,
                 subjectName,
@@ -192,14 +277,29 @@ const AssignmentDetailPage = () => {
         status={submissionStatus}
       />
 
-      <AssignmentAttachmentsSection attachments={attachments} />
+      <AssignmentAttachmentsSection
+        attachments={attachments}
+        onDownload={async (a) => {
+          if (!a?.url) return;
+          try {
+            const filename = ensureFilenameHasExtension({
+              filename: a?.name,
+              mimeType: a?.type,
+              url: a?.url,
+            });
+            await triggerBrowserDownload({ url: a.url, filename });
+          } catch (e) {
+            toast.error(e?.message || "Failed to download file");
+          }
+        }}
+      />
 
       {/* Only show preview for PDF files that can be embedded */}
-      {previewUrl ? (
+      {isPdfAttachment && previewBlobUrl ? (
         <div className="card shadow-sm border-0 mb-4">
           <div className="card-body">
             <h5 className="fw-semibold mb-3">Preview</h5>
-            <PdfViewer src={previewUrl} title="Assignment PDF" height={520} />
+            <PdfViewer src={previewBlobUrl} title="Assignment PDF" height={520} />
           </div>
         </div>
       ) : null}

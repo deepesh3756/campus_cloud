@@ -48,8 +48,16 @@ const AnalyticsPage = () => {
   const [assignmentOptions, setAssignmentOptions] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [analytics, setAnalytics] = useState(null);
+  const [submissionDrafts, setSubmissionDrafts] = useState({});
+  const [savingSubmissionIds, setSavingSubmissionIds] = useState(() => new Set());
 
   useEffect(() => {
+    if (navBatchCourseSubjectId) {
+      setFacultyAssignments([]);
+      setBatches([]);
+      return;
+    }
+
     if (!user?.userId) return;
 
     let mounted = true;
@@ -83,7 +91,7 @@ const AnalyticsPage = () => {
     return () => {
       mounted = false;
     };
-  }, [batchName, selectedBatchName, user?.userId]);
+  }, [batchName, navBatchCourseSubjectId, selectedBatchName, user?.userId]);
 
   const selectedBatchId = useMemo(() => {
     if (batchId) return batchId;
@@ -163,9 +171,11 @@ const AnalyticsPage = () => {
         if (!mounted) return;
 
         const list = (Array.isArray(data) ? data : []).slice().sort((a, b) => {
-          const da = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const db = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return db - da;
+          const da = a?.createdAt ? new Date(a.createdAt).getTime() : Number.POSITIVE_INFINITY;
+          const db = b?.createdAt ? new Date(b.createdAt).getTime() : Number.POSITIVE_INFINITY;
+          const na = Number.isFinite(da) ? da : Number.POSITIVE_INFINITY;
+          const nb = Number.isFinite(db) ? db : Number.POSITIVE_INFINITY;
+          return na - nb;
         });
 
         setAssignmentOptions(list);
@@ -193,12 +203,14 @@ const AnalyticsPage = () => {
     return () => {
       mounted = false;
     };
-  }, [navAssignmentId, selectedBatchCourseSubjectId]);
+  }, [navAssignmentId, selectedAssignmentId, selectedBatchCourseSubjectId]);
 
   useEffect(() => {
     if (!selectedAssignmentId) {
       setSubmissions([]);
       setAnalytics(null);
+      setSubmissionDrafts({});
+      setSavingSubmissionIds(new Set());
       return;
     }
 
@@ -213,10 +225,14 @@ const AnalyticsPage = () => {
         if (!mounted) return;
         setSubmissions(Array.isArray(subs) ? subs : []);
         setAnalytics(a || null);
+        setSubmissionDrafts({});
+        setSavingSubmissionIds(new Set());
       } catch {
         if (!mounted) return;
         setSubmissions([]);
         setAnalytics(null);
+        setSubmissionDrafts({});
+        setSavingSubmissionIds(new Set());
       } finally {
         if (mounted) setLoadingSubmissions(false);
       }
@@ -283,6 +299,87 @@ const AnalyticsPage = () => {
   const isSubmitted = (s) => {
     const status = (s?.status || "").toString().toUpperCase();
     return status === "SUBMITTED" || status === "EVALUATED";
+  };
+
+  const isEvaluatable = (s) => {
+    const status = (s?.status || "").toString().toUpperCase();
+    return status === "SUBMITTED" || status === "EVALUATED";
+  };
+
+  const getDraft = (submissionId) => {
+    return submissionId ? submissionDrafts[submissionId] : null;
+  };
+
+  const updateDraft = (submissionId, patch) => {
+    if (!submissionId) return;
+    setSubmissionDrafts((prev) => ({
+      ...prev,
+      [submissionId]: {
+        ...(prev[submissionId] || {}),
+        ...patch,
+      },
+    }));
+  };
+
+  const toGradeNumberOrNull = (v) => {
+    if (v == null || v === "") return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const saveEvaluationIfChanged = async ({ submissionId, currentGrade, currentRemarks }) => {
+    if (!submissionId) return;
+    if (savingSubmissionIds.has(submissionId)) return;
+
+    const draft = getDraft(submissionId);
+    if (!draft) return;
+    const nextGrade = toGradeNumberOrNull(draft?.grade);
+    const nextRemarks = (draft?.remarks ?? "").toString();
+
+    const normalizedCurrentGrade = toGradeNumberOrNull(currentGrade);
+    const normalizedCurrentRemarks = (currentRemarks ?? "").toString();
+
+    if (nextGrade === normalizedCurrentGrade && nextRemarks === normalizedCurrentRemarks) return;
+
+    try {
+      setSavingSubmissionIds((prev) => {
+        const next = new Set(prev);
+        next.add(submissionId);
+        return next;
+      });
+
+      await assignmentService.evaluateSubmission(submissionId, {
+        grade: nextGrade,
+        remarks: nextRemarks,
+      });
+
+      setSubmissions((prev) =>
+        (Array.isArray(prev) ? prev : []).map((s) =>
+          s?.submissionId === submissionId
+            ? {
+                ...s,
+                grade: nextGrade,
+                remarks: nextRemarks,
+                status: "EVALUATED",
+              }
+            : s
+        )
+      );
+
+      toast.success("Updated");
+    } catch (e) {
+      toast.error(e?.response?.data?.message || "Failed to update");
+      updateDraft(submissionId, {
+        grade: currentGrade ?? "",
+        remarks: currentRemarks ?? "",
+      });
+    } finally {
+      setSavingSubmissionIds((prev) => {
+        const next = new Set(prev);
+        next.delete(submissionId);
+        return next;
+      });
+    }
   };
 
   const submittedCount = useMemo(() => {
@@ -679,12 +776,74 @@ const AnalyticsPage = () => {
                           const submitted = isSubmitted(s);
                           const rowStyle = submitted ? undefined : { opacity: 0.5 };
 
+                          const submissionId = s?.submissionId;
+                          const draft = submissionId ? submissionDrafts[submissionId] : null;
+                          const gradeValue = draft?.grade ?? (s?.grade ?? "");
+                          const remarksValue = draft?.remarks ?? (s?.remarks ?? "");
+                          const isSaving = submissionId ? savingSubmissionIds.has(submissionId) : false;
+                          const evaluatable = isEvaluatable(s);
+
                           return (
                             <tr key={s.submissionId || s.studentUserId} style={rowStyle}>
                               <td className="text-muted">{s.studentPrn || "-"}</td>
                               <td>{s.studentName || "-"}</td>
-                              <td className="text-muted">{submitted ? s.grade || "-" : "-"}</td>
-                              <td className="text-muted">{submitted ? s.remarks || "-" : "-"}</td>
+                              <td>
+                                {evaluatable ? (
+                                  <select
+                                    className="form-select form-select-sm"
+                                    value={gradeValue}
+                                    disabled={isSaving}
+                                    onChange={(e) => {
+                                      updateDraft(submissionId, { grade: e.target.value });
+                                    }}
+                                    onBlur={() => {
+                                      saveEvaluationIfChanged({
+                                        submissionId,
+                                        currentGrade: s?.grade,
+                                        currentRemarks: s?.remarks,
+                                      });
+                                    }}
+                                  >
+                                    <option value="">-</option>
+                                    {Array.from({ length: 10 }).map((_, i) => {
+                                      const n = i + 1;
+                                      return (
+                                        <option key={n} value={String(n)}>
+                                          {n}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                ) : submitted ? (
+                                  <span className="text-muted">{s.grade ?? "-"}</span>
+                                ) : (
+                                  <span className="text-muted">-</span>
+                                )}
+                              </td>
+                              <td>
+                                {evaluatable ? (
+                                  <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    value={remarksValue}
+                                    disabled={isSaving}
+                                    onChange={(e) => {
+                                      updateDraft(submissionId, { remarks: e.target.value });
+                                    }}
+                                    onBlur={() => {
+                                      saveEvaluationIfChanged({
+                                        submissionId,
+                                        currentGrade: s?.grade,
+                                        currentRemarks: s?.remarks,
+                                      });
+                                    }}
+                                  />
+                                ) : submitted ? (
+                                  <span className="text-muted">{s.remarks ?? "-"}</span>
+                                ) : (
+                                  <span className="text-muted">-</span>
+                                )}
+                              </td>
                               <td className="text-center">
                                 <button
                                   type="button"

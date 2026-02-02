@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { toast } from "react-toastify";
 import userService from "../../services/api/userService";
+import { tokenService } from "../../services/storage/tokenService";
 
 const ProfilePageCommon = ({
   initialName = "User",
@@ -23,10 +24,16 @@ const ProfilePageCommon = ({
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
+    username: "",
     email: initialEmail,
     mobile: initialPhone,
     gender: "",
   });
+
+  const [initialUsername, setInitialUsername] = useState("");
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [usernameError, setUsernameError] = useState(null);
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -59,10 +66,16 @@ const ProfilePageCommon = ({
         setFormData({
           firstName: me?.firstName ?? "",
           lastName: me?.lastName ?? "",
+          username: me?.username ?? "",
           email: me?.email ?? initialEmail,
           mobile: me?.mobile ?? initialPhone,
           gender: me?.gender ?? "",
         });
+
+        setInitialUsername(me?.username ?? "");
+        setCheckingUsername(false);
+        setUsernameError(null);
+        setUsernameAvailable(null);
       } catch {
         if (!mounted) return;
         setError("Failed to load profile");
@@ -94,6 +107,44 @@ const ProfilePageCommon = ({
       ...formData,
       [e.target.name]: e.target.value,
     });
+
+    if (e.target.name === "username") {
+      setUsernameError(null);
+      setUsernameAvailable(null);
+    }
+  };
+
+  const checkUsernameOnBlur = async () => {
+    const next = String(formData.username || "").trim();
+    const current = String(initialUsername || "").trim();
+
+    if (!next) {
+      setUsernameError("Username is required");
+      setUsernameAvailable(false);
+      return;
+    }
+
+    if (next === current) {
+      setUsernameError(null);
+      setUsernameAvailable(null);
+      return;
+    }
+
+    try {
+      setCheckingUsername(true);
+      setUsernameError(null);
+      const available = await userService.checkUsernameAvailable(next);
+      const ok = Boolean(available);
+      setUsernameAvailable(ok);
+      if (!ok) {
+        setUsernameError("Username is already taken");
+      }
+    } catch {
+      setUsernameAvailable(false);
+      setUsernameError("Failed to check username availability");
+    } finally {
+      setCheckingUsername(false);
+    }
   };
 
   const handlePasswordChange = (e) => {
@@ -119,6 +170,21 @@ const ProfilePageCommon = ({
       return;
     }
 
+    const nextUsername = String(formData.username || "").trim();
+    const currentUsername = String(initialUsername || "").trim();
+    const usernameChanged = nextUsername !== currentUsername;
+    if (!nextUsername) {
+      setError("Username is required");
+      toast.error("Username is required");
+      return;
+    }
+
+    if (usernameChanged && usernameAvailable !== true) {
+      setError("Please choose an available username");
+      toast.error("Please choose an available username");
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -128,6 +194,7 @@ const ProfilePageCommon = ({
         userId,
         firstName: formData.firstName,
         lastName: formData.lastName,
+        username: nextUsername,
         email: formData.email,
         mobile: formData.mobile,
         gender: formData.gender,
@@ -136,8 +203,25 @@ const ProfilePageCommon = ({
 
       const updated = await userService.updateUserProfile(userId, payload);
       setProfile(updated);
+
+      const updatedUsername = updated?.username ?? nextUsername;
+      setInitialUsername(updatedUsername);
+      setUsernameAvailable(null);
+      setUsernameError(null);
+
       setMessage("Profile updated successfully");
       toast.success("Profile updated successfully");
+
+      if (usernameChanged) {
+        try {
+          tokenService.removeToken();
+          localStorage.removeItem("auth_user");
+          localStorage.setItem("auth_forced_logout", "1");
+        } catch {
+          // ignore
+        }
+        window.location.href = "/";
+      }
     } catch {
       setError("Failed to update profile");
       toast.error("Failed to update profile");
@@ -181,6 +265,15 @@ const ProfilePageCommon = ({
       setPasswordData({ currentPassword: "", newPassword: "", confirm: "" });
       setMessage("Password changed successfully");
       toast.success("Password changed successfully");
+
+      try {
+        tokenService.removeToken();
+        localStorage.removeItem("auth_user");
+        localStorage.setItem("auth_forced_logout", "1");
+      } catch {
+        // ignore
+      }
+      window.location.href = "/";
     } catch {
       setError("Failed to change password");
       toast.error("Failed to change password");
@@ -245,6 +338,24 @@ const ProfilePageCommon = ({
                   disabled={nameDisabled}
                   readOnly={nameDisabled}
                 />
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">Username</label>
+                <input
+                  className={`form-control ${usernameError ? "is-invalid" : usernameAvailable === true ? "is-valid" : ""}`}
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  onBlur={checkUsernameOnBlur}
+                  disabled={loading}
+                />
+                {usernameError ? <div className="invalid-feedback">{usernameError}</div> : null}
+                {checkingUsername ? (
+                  <div className="form-text">Checking username...</div>
+                ) : usernameAvailable === true ? (
+                  <div className="valid-feedback d-block">Username is available</div>
+                ) : null}
               </div>
 
               {!nameDisabled ? (

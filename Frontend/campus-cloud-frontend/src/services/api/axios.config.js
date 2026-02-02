@@ -115,7 +115,12 @@ api.interceptors.response.use(
       } catch (refreshError) {
         tokenService.removeToken();
         localStorage.removeItem('auth_user');
-        window.location.href = '/login';
+        try {
+          localStorage.setItem('auth_forced_logout', '1');
+        } catch {
+          // ignore
+        }
+        window.location.href = '/';
         return Promise.reject(refreshError);
       } finally {
         refreshPromise = null;
@@ -125,7 +130,12 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && isRefreshRequest) {
       tokenService.removeToken();
       localStorage.removeItem('auth_user');
-      window.location.href = '/login';
+      try {
+        localStorage.setItem('auth_forced_logout', '1');
+      } catch {
+        // ignore
+      }
+      window.location.href = '/';
     }
 
     return Promise.reject(error);

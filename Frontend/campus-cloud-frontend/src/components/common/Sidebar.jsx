@@ -8,6 +8,7 @@ import {
   Layers,
   BookOpen,
   Users,
+  UserPen,
   User,
   ClipboardList,
   ChevronDown,
@@ -340,17 +341,17 @@ const Sidebar = ({ menuItems: menuItemsProp }) => {
     },
     {
       label: "Students",
-      icon: Users,
+      icon: UserPen,
       path: "/admin/students",
     },
     {
       label: "Faculty",
-      icon: User,
+      icon: Users,
       path: "/admin/faculty",
     },
     {
-      label: "Assignments",
-      icon: ClipboardList,
+      label: "Faculty View",
+      icon: GraduationCap,
       path: "/faculty",
     },
   ];

@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -87,7 +89,8 @@ public class AssignmentController {
             HttpServletRequest httpRequest
     ) {
         requireAnyRole(httpRequest, "FACULTY", "ADMIN");
-        Long facultyId = requireUserId(httpRequest);
+        Long userId = requireUserId(httpRequest);
+        boolean isAdmin = isAdmin(httpRequest);
 
         if ((assignmentJson == null || assignmentJson.trim().isEmpty())
                 && (assignmentParam != null && !assignmentParam.trim().isEmpty())) {
@@ -114,7 +117,7 @@ public class AssignmentController {
         }
 
         log.info("Creating assignment: {}", request.getTitle());
-        AssignmentDTO assignment = assignmentService.createAssignment(request, file, facultyId);
+        AssignmentDTO assignment = assignmentService.createAssignment(request, file, userId, isAdmin);
         
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -134,7 +137,8 @@ public class AssignmentController {
             HttpServletRequest httpRequest
     ) {
         requireAnyRole(httpRequest, "FACULTY", "ADMIN");
-        Long facultyId = requireUserId(httpRequest);
+        Long userId = requireUserId(httpRequest);
+        boolean isAdmin = isAdmin(httpRequest);
 
         if ((assignmentJson == null || assignmentJson.trim().isEmpty())
                 && (assignmentParam != null && !assignmentParam.trim().isEmpty())) {
@@ -161,7 +165,7 @@ public class AssignmentController {
         }
 
         log.info("Updating assignment: {}", assignmentId);
-        AssignmentDTO updated = assignmentService.updateAssignment(assignmentId, request, file, facultyId);
+        AssignmentDTO updated = assignmentService.updateAssignment(assignmentId, request, file, userId, isAdmin);
 
         return ResponseEntity.ok(ApiResponse.success("Assignment updated successfully", updated));
     }
@@ -206,6 +210,36 @@ public class AssignmentController {
         return ResponseEntity.ok(ApiResponse.success(assignment));
     }
 
+    @GetMapping("/{assignmentId}/preview")
+    public ResponseEntity<byte[]> previewAssignmentFile(
+            @PathVariable Long assignmentId,
+            HttpServletRequest httpRequest
+    ) {
+        requireAnyRole(httpRequest, "STUDENT", "FACULTY", "ADMIN");
+
+        AssignmentService.AssignmentFileContent content = assignmentService.getAssignmentFileContent(assignmentId);
+
+        String mimeType = content.getMimeType();
+        MediaType mediaType;
+        try {
+            mediaType = (mimeType != null && !mimeType.trim().isEmpty())
+                    ? MediaType.parseMediaType(mimeType)
+                    : MediaType.APPLICATION_OCTET_STREAM;
+        } catch (Exception e) {
+            mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(mediaType);
+        headers.setContentDisposition(
+                ContentDisposition.inline()
+                        .filename(content.getFileName() != null ? content.getFileName() : "assignment")
+                        .build()
+        );
+
+        return new ResponseEntity<>(content.getBytes(), headers, HttpStatus.OK);
+    }
+
     /**
      * 4. Get All Submissions for Assignment (Faculty only)
      * GET /api/assignments/{assignmentId}/submissions
@@ -241,9 +275,10 @@ public class AssignmentController {
         log.info("Evaluating submission: {}", submissionId);
 
         requireAnyRole(httpRequest, "FACULTY", "ADMIN");
-        Long facultyId = requireUserId(httpRequest);
+        Long userId = requireUserId(httpRequest);
+        boolean isAdmin = isAdmin(httpRequest);
         SubmissionDTO submission = submissionService
-                .evaluateSubmission(submissionId, request, facultyId);
+                .evaluateSubmission(submissionId, request, userId, isAdmin);
         
         return ResponseEntity.ok(ApiResponse.success("Submission evaluated successfully", submission));
     }
@@ -277,11 +312,12 @@ public class AssignmentController {
             HttpServletRequest httpRequest
     ) {
         requireAnyRole(httpRequest, "FACULTY", "ADMIN");
-        Long facultyId = requireUserId(httpRequest);
-        log.info("Fetching statistics for faculty: {}", facultyId);
+        Long userId = requireUserId(httpRequest);
+        boolean isAdmin = isAdmin(httpRequest);
+        log.info("Fetching statistics for user: {}", userId);
         
         AnalyticsService.FacultyStatistics stats = analyticsService
-                .getFacultyStatistics(facultyId);
+                .getFacultyStatistics(userId, isAdmin);
         
         return ResponseEntity.ok(ApiResponse.success(stats));
     }
@@ -300,9 +336,10 @@ public class AssignmentController {
         log.info("Updating assignment {} status to: {}", assignmentId, status);
 
         requireAnyRole(httpRequest, "FACULTY", "ADMIN");
-        Long facultyId = requireUserId(httpRequest);
+        Long userId = requireUserId(httpRequest);
+        boolean isAdmin = isAdmin(httpRequest);
         AssignmentDTO assignment = assignmentService
-                .updateAssignmentStatus(assignmentId, status, facultyId);
+                .updateAssignmentStatus(assignmentId, status, userId, isAdmin);
         
         return ResponseEntity.ok(ApiResponse.success("Status updated successfully", assignment));
     }
@@ -320,8 +357,9 @@ public class AssignmentController {
         log.info("Deleting assignment: {}", assignmentId);
 
         requireAnyRole(httpRequest, "FACULTY", "ADMIN");
-        Long facultyId = requireUserId(httpRequest);
-        assignmentService.deleteAssignment(assignmentId, facultyId);
+        Long userId = requireUserId(httpRequest);
+        boolean isAdmin = isAdmin(httpRequest);
+        assignmentService.deleteAssignment(assignmentId, userId, isAdmin);
         
         return ResponseEntity.ok(ApiResponse.success("Assignment deleted successfully", null));
     }
@@ -491,8 +529,13 @@ public class AssignmentController {
     public ResponseEntity<ApiResponse<List<AssignmentDTO>>> getAllAssignments(HttpServletRequest httpRequest) {
         log.info("Admin fetching all assignments");
         requireRole(httpRequest, "ADMIN");
-        // Implementation would fetch all assignments across all subjects
-        return ResponseEntity.ok(ApiResponse.success("Not implemented yet", null));
+        List<AssignmentDTO> assignments = assignmentService.getAllAssignments();
+        return ResponseEntity.ok(ApiResponse.success(assignments));
+    }
+
+    private boolean isAdmin(HttpServletRequest request) {
+        List<String> roles = getRoles(request);
+        return roles.stream().anyMatch(r -> "ADMIN".equalsIgnoreCase(r) || "ROLE_ADMIN".equalsIgnoreCase(r));
     }
 
     // ==================== UTILITY METHODS ====================

@@ -33,12 +33,17 @@ const AddSubjectPage = () => {
   const sortedSubjects = useMemo(() => {
     const list = Array.isArray(subjects) ? subjects : [];
     return [...list].sort((a, b) => {
-      const aIsNew = String(a?.subjectId) === NEW_SUBJECT_ID;
-      const bIsNew = String(b?.subjectId) === NEW_SUBJECT_ID;
-      if (aIsNew !== bIsNew) return aIsNew ? 1 : -1;
       return String(a?.subjectCode || "").localeCompare(String(b?.subjectCode || ""));
     });
   }, [subjects]);
+
+  const newSubjectRow = useMemo(() => {
+    return (Array.isArray(sortedSubjects) ? sortedSubjects : []).find((s) => String(s?.subjectId) === NEW_SUBJECT_ID) || null;
+  }, [sortedSubjects]);
+
+  const existingSubjects = useMemo(() => {
+    return (Array.isArray(sortedSubjects) ? sortedSubjects : []).filter((s) => String(s?.subjectId) !== NEW_SUBJECT_ID);
+  }, [sortedSubjects]);
 
   useEffect(() => {
     let isMounted = true;
@@ -177,7 +182,18 @@ const AddSubjectPage = () => {
       <div className="d-flex justify-content-center">
         <div className="card border-0 shadow-sm w-100" style={{ maxWidth: 1100, borderRadius: 14 }}>
           <div className="card-body p-4">
-            <h4 className="fw-bold mb-4">Add / Update Subject</h4>
+            <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-4">
+              <h4 className="fw-bold mb-0">Add / Update Subject</h4>
+
+              <button
+                type="button"
+                className="btn btn-sm btn-primary d-inline-flex align-items-center gap-2"
+                onClick={addNewSubjectRow}
+              >
+                <Plus size={16} />
+                Add New Subject
+              </button>
+            </div>
 
             {error ? <div className="text-danger mb-3">{error}</div> : null}
 
@@ -207,12 +223,17 @@ const AddSubjectPage = () => {
                         Loading...
                       </td>
                     </tr>
-                  ) : sortedSubjects.length ? (
-                    sortedSubjects.map((s, idx) => {
+                  ) : existingSubjects.length || newSubjectRow ? (
+                    [
+                      ...(newSubjectRow ? [newSubjectRow] : []),
+                      ...existingSubjects,
+                    ].map((s, idx) => {
                       const isRowEditing = String(editingSubjectId) === String(s.subjectId);
+                      const isNew = String(s?.subjectId) === NEW_SUBJECT_ID;
+                      const serialNo = isNew ? existingSubjects.length + 1 : idx + 1 - (newSubjectRow ? 1 : 0);
                       return (
                         <tr key={s.subjectId}>
-                          <td className="px-3 py-3 text-center text-secondary">{idx + 1}</td>
+                          <td className="px-3 py-3 text-center text-secondary">{serialNo}</td>
 
                           <td className="px-3 py-3 text-center">
                             {isRowEditing ? (
@@ -288,23 +309,6 @@ const AddSubjectPage = () => {
                     </tr>
                   )}
                 </tbody>
-
-                <tfoot>
-                  <tr>
-                    <td className="px-3 py-3" colSpan={4}>
-                      <div className="d-flex justify-content-end">
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-primary d-inline-flex align-items-center gap-2"
-                          onClick={addNewSubjectRow}
-                        >
-                          <Plus size={16} />
-                          Add New Subject
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                </tfoot>
               </table>
             </div>
           </div>

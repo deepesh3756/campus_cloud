@@ -4,6 +4,11 @@ import { Upload } from "lucide-react";
 import { toast } from "react-toastify";
 
 import CourseBreadcrumb from "../../components/faculty/CourseBreadcrumb";
+import StudentBreadcrumb from "../../components/common/StudentBreadcrumb";
+import AssignmentHeroSection from "../../components/student/AssignmentHeroSection";
+import AssignmentAttachmentsSection from "../../components/student/AssignmentAttachmentsSection";
+import AssignmentSubmissionSection from "../../components/student/AssignmentSubmissionSection";
+import PdfViewer from "../../components/common/PdfViewer";
 import assignmentService from "../../services/api/assignmentService";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -34,6 +39,8 @@ const AddAssignmentPage = () => {
   const [loading, setLoading] = useState(false);
   const [existingFileUrl, setExistingFileUrl] = useState(null);
   const [existingFileName, setExistingFileName] = useState(null);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState(null);
 
   const pageTitle = useMemo(() => {
     const prefix = subjectName || "Assignment";
@@ -71,6 +78,35 @@ const AddAssignmentPage = () => {
       mounted = false;
     };
   }, [assignmentId, mode]);
+
+  useEffect(() => {
+    if (!previewMode) {
+      setPreviewBlobUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      return;
+    }
+
+    const f = files?.[0] || null;
+    if (!f) {
+      setPreviewBlobUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      return;
+    }
+
+    const url = URL.createObjectURL(f);
+    setPreviewBlobUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return url;
+    });
+
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [files, previewMode]);
 
   const validate = () => {
     const nextErrors = {};
@@ -129,6 +165,72 @@ const AddAssignmentPage = () => {
   const handleRemoveFile = (key) => {
     setFiles((prev) => prev.filter((f) => `${f.name}-${f.size}-${f.lastModified}` !== key));
   };
+
+  const triggerBrowserDownload = async ({ url, filename }) => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Failed to download file");
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  };
+
+  const handleDownloadExisting = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!existingFileUrl) return;
+
+    try {
+      const safeName = (existingFileName || "assignment_attachment")
+        .toString()
+        .replace(/[/\\]/g, "_");
+      await triggerBrowserDownload({ url: existingFileUrl, filename: safeName });
+    } catch {
+      toast.error("Failed to download file.");
+    }
+  };
+
+  const previewDueDate = useMemo(() => {
+    if (!dueDate) return null;
+    return `${dueDate}T23:59:59`;
+  }, [dueDate]);
+
+  const previewAttachment = useMemo(() => {
+    const firstFile = files?.[0] || null;
+    if (firstFile) {
+      return {
+        id: `draft-${firstFile.name}-${firstFile.size}-${firstFile.lastModified}`,
+        name: firstFile.name,
+        type: firstFile.type || "",
+        url: previewBlobUrl,
+      };
+    }
+
+    if (existingFileUrl) {
+      return {
+        id: `existing-${assignmentId || "draft"}`,
+        name: existingFileName || "Assignment File",
+        type: "",
+        url: existingFileUrl,
+      };
+    }
+
+    return null;
+  }, [assignmentId, existingFileName, existingFileUrl, files, previewBlobUrl]);
+
+  const previewPdfUrl = useMemo(() => {
+    const a = previewAttachment;
+    if (!a?.url) return null;
+    const mime = (a?.type || "").toLowerCase();
+    const name = (a?.name || "").toLowerCase();
+    const isPdf = mime.includes("pdf") || name.endsWith(".pdf");
+    return isPdf ? a.url : null;
+  }, [previewAttachment]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -198,9 +300,62 @@ const AddAssignmentPage = () => {
 
       <div className="card border-0 shadow-sm">
         <div className="card-body p-4">
-          <h5 className="fw-semibold mb-4">{pageTitle}</h5>
+          <div className="d-flex align-items-center justify-content-between mb-4">
+            <h5 className="fw-semibold mb-0">{pageTitle}</h5>
+            <button
+              type="button"
+              className={`btn ${previewMode ? "btn-outline-secondary" : "btn-outline-primary"}`}
+              onClick={() => setPreviewMode((p) => !p)}
+              disabled={loading}
+            >
+              {previewMode ? "Edit" : "Preview"}
+            </button>
+          </div>
 
-          <form onSubmit={handleSubmit}>
+          {previewMode ? (
+            <div className="assignment-detail-page container-fluid" style={{ padding: 0 }}>
+              <StudentBreadcrumb
+                items={[
+                  {
+                    label: subjectName || subjectCode || "Subject",
+                  },
+                  {
+                    label: title?.trim() ? title.trim() : "Assignment",
+                  },
+                ]}
+              />
+
+              <AssignmentHeroSection
+                title={title?.trim() ? title.trim() : "Assignment"}
+                description={description}
+                dueDate={previewDueDate}
+                status="Pending"
+              />
+
+              <AssignmentAttachmentsSection
+                attachments={previewAttachment ? [previewAttachment] : []}
+                onDownload={async (a) => {
+                  if (!a?.url) return;
+                  const safeName = (a?.name || "assignment_attachment")
+                    .toString()
+                    .replace(/[/\\]/g, "_");
+                  await triggerBrowserDownload({ url: a.url, filename: safeName });
+                }}
+              />
+
+              {previewPdfUrl ? (
+                <div className="card shadow-sm border-0 mb-4">
+                  <div className="card-body">
+                    <h5 className="fw-semibold mb-3">Preview</h5>
+                    <PdfViewer src={previewPdfUrl} title="Assignment PDF" height={520} />
+                  </div>
+                </div>
+              ) : null}
+
+              <AssignmentSubmissionSection disabled={true} />
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit}>
             <div className="mb-3">
               <label className="form-label fw-semibold">Assignment Title</label>
               <input
@@ -248,7 +403,7 @@ const AddAssignmentPage = () => {
               {mode === "edit" && existingFileUrl ? (
                 <div className="mb-2 small">
                   <span className="text-muted">Current file: </span>
-                  <a href={existingFileUrl} target="_blank" rel="noreferrer">
+                  <a href={existingFileUrl} onClick={handleDownloadExisting}>
                     {existingFileName || "View"}
                   </a>
                 </div>
@@ -324,7 +479,8 @@ const AddAssignmentPage = () => {
                 Save Changes
               </button>
             </div>
-          </form>
+            </form>
+          )}
         </div>
       </div>
     </div>

@@ -41,11 +41,20 @@ public class CloudinaryService {
                     assignmentsFolder, batchCourseSubjectId, assignmentId);
 
             String ext = FilenameUtils.getExtension(file.getOriginalFilename());
-            boolean isPdf = ext != null && ext.equalsIgnoreCase("pdf");
+            boolean isImage = false;
+            String contentType = file.getContentType();
+            if (contentType != null && contentType.toLowerCase().startsWith("image/")) {
+                isImage = true;
+            } else if (ext != null) {
+                String e = ext.toLowerCase();
+                isImage = e.equals("jpg") || e.equals("jpeg") || e.equals("png") || e.equals("gif") || e.equals("webp");
+            }
+
+            String resourceType = isImage ? "image" : "raw";
 
             Map<String, Object> uploadParams = ObjectUtils.asMap(
                     "folder", folder,
-                    "resource_type", isPdf ? "raw" : "auto",
+                    "resource_type", resourceType,
                     "use_filename", true,
                     "unique_filename", true,
                     "overwrite", false
@@ -85,11 +94,20 @@ public class CloudinaryService {
                     submissionsFolder, batchCourseSubjectId, assignmentId, studentId);
 
             String ext = FilenameUtils.getExtension(file.getOriginalFilename());
-            boolean isPdf = ext != null && ext.equalsIgnoreCase("pdf");
+            boolean isImage = false;
+            String contentType = file.getContentType();
+            if (contentType != null && contentType.toLowerCase().startsWith("image/")) {
+                isImage = true;
+            } else if (ext != null) {
+                String e = ext.toLowerCase();
+                isImage = e.equals("jpg") || e.equals("jpeg") || e.equals("png") || e.equals("gif") || e.equals("webp");
+            }
+
+            String resourceType = isImage ? "image" : "raw";
 
             Map<String, Object> uploadParams = ObjectUtils.asMap(
                     "folder", folder,
-                    "resource_type", isPdf ? "raw" : "auto",
+                    "resource_type", resourceType,
                     "use_filename", true,
                     "unique_filename", true,
                     "overwrite", true // Allow students to resubmit (overwrite previous)
@@ -121,6 +139,11 @@ public class CloudinaryService {
     public void deleteFile(String publicId) {
         try {
             Map result = cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            Object rawResult = result != null ? result.get("result") : null;
+            if (rawResult != null && "not found".equalsIgnoreCase(rawResult.toString())) {
+                Map retry = cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "raw"));
+                result = retry != null ? retry : result;
+            }
             log.info("File deleted from Cloudinary: {} - Result: {}", publicId, result.get("result"));
         } catch (IOException e) {
             log.error("Failed to delete file from Cloudinary: {}", publicId, e);

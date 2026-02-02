@@ -48,6 +48,11 @@ export const userService = {
     return response.data?.data ?? response.data;
   },
 
+  registerUsersInBulk: async (entries) => {
+    const response = await api.post('/api/users/bulk-details', Array.isArray(entries) ? entries : []);
+    return response.data?.data ?? response.data;
+  },
+
   getFacultiesByIds: async (userIds) => {
     const response = await api.post('/api/users/faculties/by-ids', Array.isArray(userIds) ? userIds : []);
     return response.data?.data ?? response.data;

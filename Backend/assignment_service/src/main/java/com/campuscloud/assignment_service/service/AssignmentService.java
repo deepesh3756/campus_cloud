@@ -20,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.InputStream;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -57,14 +59,17 @@ public class AssignmentService {
     public AssignmentDTO createAssignment(
             CreateAssignmentRequest request,
             MultipartFile file,
-            Long facultyUserId) {
-        log.info("Creating assignment: {} by faculty: {}", request.getTitle(), facultyUserId);
+            Long userId,
+            boolean isAdmin) {
+        log.info("Creating assignment: {} by user: {} (admin={})", request.getTitle(), userId, isAdmin);
 
         // 1. Validate batch-course-subject exists
         validateBatchCourseSubject(request.getBatchCourseSubjectId());
 
         // 2. Validate faculty is assigned to this subject
-        validateFacultyAssignment(facultyUserId, request.getBatchCourseSubjectId());
+        if (!isAdmin) {
+            validateFacultyAssignment(userId, request.getBatchCourseSubjectId());
+        }
 
         boolean hasFile = file != null && !file.isEmpty();
 
@@ -76,7 +81,7 @@ public class AssignmentService {
         // 4. Create assignment entity (without file info first)
         Assignment assignment = Assignment.builder()
                 .batchCourseSubjectId(request.getBatchCourseSubjectId())
-                .createdByUserId(facultyUserId)
+                .createdByUserId(userId)
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .dueDate(request.getDueDate())
@@ -108,10 +113,53 @@ public class AssignmentService {
         createSubmissionRecordsForStudents(assignment.getAssignmentId(), request.getBatchCourseSubjectId());
 
         // 9. Publish event to RabbitMQ for notifications
-        publishAssignmentCreatedEvent(assignment, facultyUserId);
+        publishAssignmentCreatedEvent(assignment, userId);
 
         log.info("Assignment created successfully: {}", assignment.getAssignmentId());
         return AssignmentDTO.fromEntity(assignment);
+    }
+
+    public static class AssignmentFileContent {
+        private final byte[] bytes;
+        private final String fileName;
+        private final String mimeType;
+
+        public AssignmentFileContent(byte[] bytes, String fileName, String mimeType) {
+            this.bytes = bytes;
+            this.fileName = fileName;
+            this.mimeType = mimeType;
+        }
+
+        public byte[] getBytes() {
+            return bytes;
+        }
+
+        public String getFileName() {
+            return fileName;
+        }
+
+        public String getMimeType() {
+            return mimeType;
+        }
+    }
+
+    public AssignmentFileContent getAssignmentFileContent(Long assignmentId) {
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Assignment not found with ID: " + assignmentId));
+
+        String url = assignment.getFilePath();
+        if (url == null || url.trim().isEmpty()) {
+            throw new ResourceNotFoundException("No attachment found for assignment: " + assignmentId);
+        }
+
+        try (InputStream in = new URL(url).openStream()) {
+            byte[] bytes = in.readAllBytes();
+            return new AssignmentFileContent(bytes, assignment.getFileName(), assignment.getMimeType());
+        } catch (Exception e) {
+            log.error("Failed to fetch assignment file content for assignment: {}", assignmentId, e);
+            throw new ResourceNotFoundException("Failed to fetch assignment attachment");
+        }
     }
 
     /**
@@ -172,14 +220,15 @@ public class AssignmentService {
             Long assignmentId,
             CreateAssignmentRequest request,
             MultipartFile file,
-            Long facultyUserId) {
-        log.info("Updating assignment: {} by faculty: {}", assignmentId, facultyUserId);
+            Long userId,
+            boolean isAdmin) {
+        log.info("Updating assignment: {} by user: {} (admin={})", assignmentId, userId, isAdmin);
 
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Assignment not found with ID: " + assignmentId));
 
-        if (!assignment.getCreatedByUserId().equals(facultyUserId)) {
+        if (!isAdmin && !assignment.getCreatedByUserId().equals(userId)) {
             throw new UnauthorizedException(
                     "You are not authorized to modify this assignment");
         }
@@ -187,7 +236,9 @@ public class AssignmentService {
         Long bcsId = assignment.getBatchCourseSubjectId();
 
         validateBatchCourseSubject(bcsId);
-        validateFacultyAssignment(facultyUserId, bcsId);
+        if (!isAdmin) {
+            validateFacultyAssignment(userId, bcsId);
+        }
 
         assignment.setTitle(request.getTitle());
         assignment.setDescription(request.getDescription());
@@ -242,7 +293,8 @@ public class AssignmentService {
     public AssignmentDTO updateAssignmentStatus(
             Long assignmentId,
             String status,
-            Long facultyUserId) {
+            Long userId,
+            boolean isAdmin) {
         log.info("Updating assignment {} status to: {}", assignmentId, status);
 
         Assignment assignment = assignmentRepository.findById(assignmentId)
@@ -250,7 +302,7 @@ public class AssignmentService {
                         "Assignment not found with ID: " + assignmentId));
 
         // Verify faculty owns this assignment
-        if (!assignment.getCreatedByUserId().equals(facultyUserId)) {
+        if (!isAdmin && !assignment.getCreatedByUserId().equals(userId)) {
             throw new UnauthorizedException(
                     "You are not authorized to modify this assignment");
         }
@@ -267,14 +319,19 @@ public class AssignmentService {
      */
     @Transactional
     public void deleteAssignment(Long assignmentId, Long facultyUserId) {
-        log.info("Deleting assignment: {} by faculty: {}", assignmentId, facultyUserId);
+        deleteAssignment(assignmentId, facultyUserId, false);
+    }
+
+    @Transactional
+    public void deleteAssignment(Long assignmentId, Long userId, boolean isAdmin) {
+        log.info("Deleting assignment: {} by user: {} (admin={})", assignmentId, userId, isAdmin);
 
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Assignment not found with ID: " + assignmentId));
 
         // Verify faculty owns this assignment
-        if (!assignment.getCreatedByUserId().equals(facultyUserId)) {
+        if (!isAdmin && !assignment.getCreatedByUserId().equals(userId)) {
             throw new UnauthorizedException(
                     "You are not authorized to delete this assignment");
         }
@@ -284,6 +341,12 @@ public class AssignmentService {
         assignmentRepository.save(assignment);
 
         log.info("Assignment deleted (soft) successfully");
+    }
+
+    public List<AssignmentDTO> getAllAssignments() {
+        return assignmentRepository.findAll().stream()
+                .map(AssignmentDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 
     /**

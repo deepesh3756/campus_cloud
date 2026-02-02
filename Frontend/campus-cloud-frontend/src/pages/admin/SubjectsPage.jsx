@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { Check, ChevronDown, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import AdminBreadcrumb from "../../components/common/AdminBreadcrumb";
 import academicService from "../../services/api/academicService";
+import userService from "../../services/api/userService";
 import ConfirmDeleteModal from "../../components/common/ConfirmDeleteModal";
 import { toast } from "react-toastify";
 
@@ -60,6 +61,9 @@ const SubjectsPage = () => {
   const [facultyDropdownOpen, setFacultyDropdownOpen] = useState(false);
   const [facultySearch, setFacultySearch] = useState("");
   const [selectedFaculties, setSelectedFaculties] = useState([]);
+
+  const [facultiesBySubjectId, setFacultiesBySubjectId] = useState({});
+  const [usersById, setUsersById] = useState({});
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -196,6 +200,87 @@ const SubjectsPage = () => {
       isMounted = false;
     };
   }, [selectedBatchId, selectedCourseId]);
+
+  useEffect(() => {
+    const list = Array.isArray(subjects) ? subjects : [];
+    const ids = list
+      .map((s) => s?.batchCourseSubjectId)
+      .filter((x) => x != null);
+    if (!ids.length) return;
+
+    const missing = ids.filter((id) => facultiesBySubjectId[id] === undefined);
+    if (!missing.length) return;
+
+    let mounted = true;
+    (async () => {
+      try {
+        const pairs = await Promise.all(
+          missing.map(async (id) => {
+            try {
+              const data = await academicService.getFacultiesBySubject(id);
+              return [id, Array.isArray(data) ? data : []];
+            } catch {
+              return [id, []];
+            }
+          })
+        );
+
+        if (!mounted) return;
+        setFacultiesBySubjectId((prev) => {
+          const next = { ...(prev || {}) };
+          pairs.forEach(([id, facultyList]) => {
+            next[id] = facultyList;
+          });
+          return next;
+        });
+      } catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [facultiesBySubjectId, subjects]);
+
+  useEffect(() => {
+    const map = facultiesBySubjectId || {};
+    const lists = Object.values(map);
+    const ids = [];
+    lists.forEach((arr) => {
+      (Array.isArray(arr) ? arr : []).forEach((fa) => {
+        const uid = fa?.userId;
+        if (uid != null) ids.push(uid);
+      });
+    });
+
+    const unique = Array.from(new Set(ids)).filter((id) => usersById[id] === undefined);
+    if (!unique.length) return;
+
+    let mounted = true;
+    (async () => {
+      try {
+        const data = await userService.getUsersByIds(unique);
+        if (!mounted) return;
+        const list = Array.isArray(data) ? data : [];
+
+        setUsersById((prev) => {
+          const next = { ...(prev || {}) };
+          list.forEach((u) => {
+            const id = u?.userId;
+            if (id != null) next[id] = u;
+          });
+          return next;
+        });
+      } catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [facultiesBySubjectId, usersById]);
 
   const selectedBatch = batches.find((b) => String(b.batchId) === String(selectedBatchId)) || null;
   const courseOptions = useMemo(() => courses, [courses]);
@@ -399,7 +484,12 @@ const SubjectsPage = () => {
                       >
                         <span className={modalSubjectId ? "" : "text-secondary"} style={{ fontSize: 14 }}>
                           {modalSubjectId
-                            ? String(allSubjects.find((s) => String(s.subjectId) === String(modalSubjectId))?.subjectCode || "")
+                            ? (() => {
+                                const picked = allSubjects.find((s) => String(s.subjectId) === String(modalSubjectId));
+                                const code = String(picked?.subjectCode || "").trim();
+                                const name = String(picked?.subjectName || "").trim();
+                                return name ? `${code} - ${name}`.trim() : code;
+                              })()
                             : "Select subject"}
                         </span>
                         <ChevronDown size={18} className="text-secondary" />
@@ -410,7 +500,7 @@ const SubjectsPage = () => {
                       {subjectDropdownOpen ? (
                         <div
                           className="position-absolute bg-white border shadow-sm w-100 mt-2"
-                          style={{ zIndex: 2000, borderRadius: 12 }}
+                          style={{ zIndex: 2000, borderRadius: 12, width: "max(100%, 520px)" }}
                         >
                           <div className="p-2 border-bottom">
                             <div className="input-group">
@@ -422,7 +512,7 @@ const SubjectsPage = () => {
                                 className="form-control border-0"
                                 value={subjectSearch}
                                 onChange={(e) => setSubjectSearch(e.target.value)}
-                                placeholder="Search subject code"
+                                placeholder="Search subject code or name"
                                 autoFocus
                               />
                             </div>
@@ -441,7 +531,10 @@ const SubjectsPage = () => {
                                   setSubjectDropdownOpen(false);
                                 }}
                               >
-                                <span style={{ color: "#4f46e5", fontWeight: 600 }}>{s.subjectCode}</span>
+                                <span style={{ color: "#4f46e5", fontWeight: 600 }}>
+                                  {String(s?.subjectCode || "").trim()}
+                                  {s?.subjectName ? ` - ${String(s.subjectName).trim()}` : ""}
+                                </span>
                                 {String(modalSubjectId) === String(s.subjectId) ? (
                                   <Check size={18} style={{ color: "#4f46e5" }} />
                                 ) : (
@@ -669,7 +762,25 @@ const SubjectsPage = () => {
                     </td>
 
                     <td className="px-4 py-3 text-secondary text-center" style={{ minWidth: 260 }}>
-                      -
+                      {(() => {
+                        const sid = subject?.batchCourseSubjectId;
+                        const list = sid != null ? facultiesBySubjectId[sid] : null;
+                        if (sid == null) return "-";
+                        if (list === undefined) return "Loading...";
+                        if (!Array.isArray(list) || list.length === 0) return "-";
+
+                        const usernames = list
+                          .map((fa) => {
+                            const uid = fa?.userId;
+                            const u = uid != null ? usersById[uid] : null;
+                            const username = u?.username || u?.userName || u?.email || null;
+                            return username ? String(username).trim() : null;
+                          })
+                          .filter(Boolean);
+
+                        if (usernames.length) return usernames.join(", ");
+                        return "-";
+                      })()}
                     </td>
 
                     <td className="px-4 py-3">

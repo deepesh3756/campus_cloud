@@ -444,7 +444,17 @@ public class SubmissionService {
             EvaluateSubmissionRequest request,
             Long facultyUserId
     ) {
-        log.info("Faculty {} evaluating submission {}", facultyUserId, submissionId);
+        return evaluateSubmission(submissionId, request, facultyUserId, false);
+    }
+
+    @Transactional
+    public SubmissionDTO evaluateSubmission(
+            Long submissionId,
+            EvaluateSubmissionRequest request,
+            Long userId,
+            boolean isAdmin
+    ) {
+        log.info("User {} (admin={}) evaluating submission {}", userId, isAdmin, submissionId);
 
         Submission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -455,12 +465,13 @@ public class SubmissionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Assignment not found"));
 
         // Verify faculty owns the assignment
-        if (!assignment.getCreatedByUserId().equals(facultyUserId)) {
+        if (!isAdmin && !assignment.getCreatedByUserId().equals(userId)) {
             throw new UnauthorizedException("You are not authorized to evaluate this submission");
         }
 
-        // Can only evaluate submitted submissions
-        if (submission.getStatus() != Submission.SubmissionStatus.SUBMITTED) {
+        // Can only evaluate submitted submissions (allow re-evaluation if already evaluated)
+        if (submission.getStatus() != Submission.SubmissionStatus.SUBMITTED
+                && submission.getStatus() != Submission.SubmissionStatus.EVALUATED) {
             throw new IllegalStateException("Only submitted submissions can be evaluated");
         }
 

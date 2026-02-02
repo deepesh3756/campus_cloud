@@ -27,10 +27,63 @@ const HomePage = () => {
         setLoading(true);
         setError(null);
 
-        const [b, a] = await Promise.all([
-          academicService.getBatches(),
-          academicService.getSubjectsByFaculty(user.userId),
-        ]);
+        const isAdmin = user?.role === "admin";
+        const b = await academicService.getBatches();
+
+        let a = [];
+        if (!isAdmin) {
+          a = await academicService.getSubjectsByFaculty(user.userId);
+        } else {
+          const batchList = Array.isArray(b) ? b : [];
+          const courseLists = await Promise.all(
+            batchList.map(async (bt) => {
+              try {
+                const courses = await academicService.getCoursesByBatch(bt?.batchId);
+                return {
+                  batch: bt,
+                  courses: Array.isArray(courses) ? courses : [],
+                };
+              } catch {
+                return {
+                  batch: bt,
+                  courses: [],
+                };
+              }
+            })
+          );
+
+          const assignments = [];
+          for (const entry of courseLists) {
+            const batch = entry?.batch;
+            const courses = Array.isArray(entry?.courses) ? entry.courses : [];
+
+            for (const c of courses) {
+              const batchCourseId = c?.batchCourseId;
+              if (!batchCourseId) continue;
+
+              let subjects = [];
+              try {
+                const resp = await academicService.getSubjectsByBatchCourseId(batchCourseId);
+                subjects = Array.isArray(resp) ? resp : [];
+              } catch {
+                subjects = [];
+              }
+
+              subjects.forEach((s) => {
+                assignments.push({
+                  batchName: batch?.batchName,
+                  courseCode: c?.courseCode,
+                  courseName: c?.courseName,
+                  batchCourseSubjectId: s?.batchCourseSubjectId,
+                  subjectCode: s?.subjectCode,
+                  subjectName: s?.subjectName,
+                });
+              });
+            }
+          }
+
+          a = assignments;
+        }
 
         if (!mounted) return;
 
@@ -66,7 +119,7 @@ const HomePage = () => {
     return () => {
       mounted = false;
     };
-  }, [requestedBatchId, user?.userId]);
+  }, [requestedBatchId, selectedBatchId, user?.role, user?.userId]);
 
   const selectedBatch = useMemo(() => {
     if (!selectedBatchId) return null;

@@ -228,6 +228,45 @@ public class AnalyticsService {
                 .build();
     }
 
+    public FacultyStatistics getFacultyStatistics(Long userId, boolean isAdmin) {
+        if (!isAdmin) {
+            return getFacultyStatistics(userId);
+        }
+
+        log.info("Calculating global statistics for admin user: {}", userId);
+
+        List<Assignment> assignments = assignmentRepository.findAll();
+
+        long totalAssignments = assignments.size();
+        long activeAssignments = assignments.stream()
+                .filter(a -> a.getStatus() == Assignment.AssignmentStatus.ACTIVE)
+                .count();
+
+        long expiredAssignments = assignments.stream()
+                .filter(a -> a.getStatus() == Assignment.AssignmentStatus.EXPIRED)
+                .count();
+
+        long totalSubmissions = assignments.stream()
+                .mapToLong(a -> submissionRepository.countSubmittedByAssignmentId(a.getAssignmentId()))
+                .sum();
+
+        long totalEvaluations = assignments.stream()
+                .mapToLong(a -> submissionRepository.countEvaluatedByAssignmentId(a.getAssignmentId()))
+                .sum();
+
+        long pendingEvaluations = totalSubmissions - totalEvaluations;
+
+        return FacultyStatistics.builder()
+                .facultyId(userId)
+                .totalAssignments(totalAssignments)
+                .activeAssignments(activeAssignments)
+                .expiredAssignments(expiredAssignments)
+                .totalSubmissions(totalSubmissions)
+                .totalEvaluations(totalEvaluations)
+                .pendingEvaluations(pendingEvaluations)
+                .build();
+    }
+
     // ==================== INNER CLASSES ====================
 
     @lombok.Data

@@ -27,6 +27,13 @@ export const assignmentService = {
     return response.data?.data ?? response.data;
   },
 
+  getAssignmentPreviewBlob: async (assignmentId) => {
+    const response = await api.get(`/api/assignments/${assignmentId}/preview`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
   getMySubmissions: async () => {
     const response = await api.get('/api/assignments/student/my-submissions');
     return response.data?.data ?? response.data;
