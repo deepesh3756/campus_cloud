@@ -49,10 +49,7 @@ public class BatchCourseSubject {
     @Column(name = "batch_course_subject_id")
     private Long batchCourseSubjectId;
 
-    // =========================
     // Relationships
-    // =========================
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "batch_course_id", nullable = false)
     private BatchCourse batchCourse;
@@ -61,10 +58,8 @@ public class BatchCourseSubject {
     @JoinColumn(name = "subject_id", nullable = false)
     private Subject subject;
 
-    // =========================
-    // Audit
-    // =========================
 
+    // Audit
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -22,6 +22,7 @@ public interface BatchCourseRepository extends JpaRepository<BatchCourse, Long> 
 
 	boolean existsByBatch_BatchIdAndCourse_CourseId(Long batchId, Long courseId);
 
+	//JPQL - Java Persistence Query Language
 	@Query(
 		"SELECT DISTINCT bc FROM BatchCourse bc " +
 		"JOIN FETCH bc.batch b " +
