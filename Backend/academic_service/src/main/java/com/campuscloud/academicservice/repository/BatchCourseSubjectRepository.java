@@ -14,6 +14,8 @@ public interface BatchCourseSubjectRepository extends JpaRepository<BatchCourseS
     
     List<BatchCourseSubject> findByBatchCourse_BatchCourseId(Long batchCourseId);
     
+    boolean existsByBatchCourse_BatchCourseId(Long batchCourseId);
+    
     Optional<BatchCourseSubject> findByBatchCourse_BatchCourseIdAndSubject_SubjectId(
         Long batchCourseId, Long subjectId
     );
@@ -31,5 +33,15 @@ public interface BatchCourseSubjectRepository extends JpaRepository<BatchCourseS
     List<BatchCourseSubject> findSubjectsByBatchAndCourse(
         @Param("batchId") Long batchId, 
         @Param("courseId") Long courseId
+    );
+
+    @Query("SELECT bcs FROM BatchCourseSubject bcs " +
+           "JOIN FETCH bcs.batchCourse bc " +
+           "JOIN FETCH bc.batch b " +
+           "JOIN FETCH bc.course c " +
+           "JOIN FETCH bcs.subject s " +
+           "WHERE bcs.batchCourseSubjectId = :batchCourseSubjectId")
+    Optional<BatchCourseSubject> findWithDetailsById(
+        @Param("batchCourseSubjectId") Long batchCourseSubjectId
     );
 }

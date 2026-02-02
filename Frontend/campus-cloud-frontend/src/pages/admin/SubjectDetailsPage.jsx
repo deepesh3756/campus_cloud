@@ -1,50 +1,51 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { User, Pencil, Trash2 } from "lucide-react";
 import AdminBreadcrumb from "../../components/common/AdminBreadcrumb";
+import academicService from "../../services/api/academicService";
 
 const SubjectDetailsPage = () => {
   const navigate = useNavigate();
   const { subjectId } = useParams();
 
-  const subjects = useMemo(
-    () => [
-      {
-        id: "cpp01-aug-2025-pg-dac",
-        code: "CPP01",
-        name: "C++",
-        startDate: "2025-08-15",
-        endDate: "2026-02-02",
-        status: "Active",
-        batchId: "aug-2025",
-        batchName: "August-2025",
-        courseId: "pg-dac-aug-2025",
-        courseCode: "PG-DAC",
-        faculties: ["Kishori Khadilkar", "Trupti sathe", "Jubera khan", "Shweta singh"],
-      },
-      {
-        id: "ooj01-aug-2025-pg-dac",
-        code: "OOJA1",
-        name: "Java",
-        startDate: "2025-08-01",
-        endDate: "2026-02-01",
-        status: "Active",
-        batchId: "aug-2025",
-        batchName: "August-2025",
-        courseId: "pg-dac-aug-2025",
-        courseCode: "PG-DAC",
-        faculties: ["Pankaj", "Dhananjay", "Anu mitra"],
-      },
-    ],
-    []
-  );
+  const [subject, setSubject] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const subject = subjects.find((s) => s.id === subjectId) || null;
+  useEffect(() => {
+    if (!subjectId) return;
+    let isMounted = true;
+
+    const fetchSubject = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await academicService.getBatchCourseSubjectById(subjectId);
+        if (isMounted) {
+          setSubject(data || null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err?.message || "Failed to load subject");
+          setSubject(null);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchSubject();
+    return () => {
+      isMounted = false;
+    };
+  }, [subjectId]);
 
   const breadcrumbItems = useMemo(() => {
-    const title = subject?.name || "Subject";
+    const title = subject?.subjectName || "Subject";
     return [{ label: "Subjects", to: "/admin/subjects" }, { label: title }];
-  }, [subject?.name]);
+  }, [subject?.subjectName]);
 
   const getStatusBadgeClass = (status) => {
     if (status === "Active") return "badge rounded-pill text-bg-primary";
@@ -57,8 +58,37 @@ const SubjectDetailsPage = () => {
     );
     if (!ok) return;
 
-    navigate("/admin/subjects");
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        await academicService.deleteBatchCourseSubject(subjectId);
+        navigate("/admin/subjects");
+      } catch (err) {
+        setError(err?.message || "Failed to delete subject");
+      } finally {
+        setLoading(false);
+      }
+    })();
   };
+
+  if (loading) {
+    return (
+      <div className="subject-details-page">
+        <AdminBreadcrumb items={[{ label: "Subjects", to: "/admin/subjects" }, { label: "Subject" }]} />
+        <div className="text-secondary">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="subject-details-page">
+        <AdminBreadcrumb items={[{ label: "Subjects", to: "/admin/subjects" }, { label: "Subject" }]} />
+        <div className="text-danger">{error}</div>
+      </div>
+    );
+  }
 
   if (!subject) {
     return (
@@ -78,29 +108,29 @@ const SubjectDetailsPage = () => {
           <div className="d-flex align-items-start justify-content-between gap-3 flex-wrap">
             <div>
               <div className="d-flex align-items-center gap-3 flex-wrap">
-                <h3 className="fw-bold mb-0">{subject.name}</h3>
-                <span className={getStatusBadgeClass(subject.status)}>{subject.status}</span>
+                <h3 className="fw-bold mb-0">{subject.subjectName}</h3>
+                <span className={getStatusBadgeClass("Active")}>Active</span>
               </div>
 
               <div className="row g-3 mt-3">
                 <div className="col-12 col-md-4">
                   <div className="text-secondary" style={{ fontSize: 13 }}>
-                    Start Date
+                    Batch
                   </div>
-                  <div className="fw-semibold">{subject.startDate}</div>
+                  <div className="fw-semibold">{subject.batchName}</div>
                 </div>
                 <div className="col-12 col-md-4">
                   <div className="text-secondary" style={{ fontSize: 13 }}>
-                    End Date
+                    Course
                   </div>
-                  <div className="fw-semibold">{subject.endDate}</div>
+                  <div className="fw-semibold">{subject.courseCode}</div>
                 </div>
               
                 <div className="col-12 col-md-4">
                   <div className="text-secondary" style={{ fontSize: 13 }}>
-                    Total Faculties
+                    Subject Code
                   </div>
-                  <div className="fw-semibold">{subject.faculties.length}</div>
+                  <div className="fw-semibold">{subject.subjectCode}</div>
                 </div>
               </div>
             </div>
@@ -129,16 +159,13 @@ const SubjectDetailsPage = () => {
             <h5 className="fw-bold mb-3">Faculties assigned</h5>
             <div className="card border-0 shadow-sm" style={{ borderRadius: 14 }}>
               <div className="card-body p-0">
-                {subject.faculties.map((f) => (
-                  <div
-                    key={f}
-                    className="d-flex align-items-center gap-2 px-4 py-3 border-bottom"
-                    style={{ fontSize: 14 }}
-                  >
-                    <User size={16} className="text-secondary" />
-                    <span>{f}</span>
-                  </div>
-                ))}
+                <div
+                  className="d-flex align-items-center gap-2 px-4 py-3 border-bottom"
+                  style={{ fontSize: 14 }}
+                >
+                  <User size={16} className="text-secondary" />
+                  <span>-</span>
+                </div>
               </div>
             </div>
           </div>

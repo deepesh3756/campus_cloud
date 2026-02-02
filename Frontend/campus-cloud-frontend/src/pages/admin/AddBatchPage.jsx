@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Check, ChevronDown, Search } from "lucide-react";
 import AdminBreadcrumb from "../../components/common/AdminBreadcrumb";
-
-const COURSE_OPTIONS = ["PG-DAC", "PG-DAI", "PG-DBDA", "PG-DTSS", "PG-VLSI", "PG-HPCSA"];
+import academicService from "../../services/api/academicService";
+import { toast } from "react-toastify";
 
 const AddBatchPage = () => {
   const navigate = useNavigate();
@@ -11,38 +11,17 @@ const AddBatchPage = () => {
 
   const isEdit = Boolean(batchId);
 
-  const existingBatches = useMemo(
-    () => [
-      {
-        id: "aug-2025",
-        name: "August - 2025",
-        startDate: "2025-07-01",
-        endDate: "2026-02-01",
-        status: "Active",
-        courses: ["PG-DAC", "PG-DAI", "PG-DBDA"],
-        description: "",
-      },
-      {
-        id: "feb-2025",
-        name: "February - 2025",
-        startDate: "2025-02-20",
-        endDate: "2025-07-20",
-        status: "Completed",
-        courses: ["PG-DAC", "PG-DAI"],
-        description: "",
-      },
-    ],
-    []
-  );
+  const [batchName, setBatchName] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [status, setStatus] = useState("UPCOMING");
+  const [courseIds, setCourseIds] = useState([]);
+  const [description, setDescription] = useState("");
 
-  const existing = isEdit ? existingBatches.find((b) => b.id === batchId) : null;
+  const [courseOptions, setCourseOptions] = useState([]);
 
-  const [batchName, setBatchName] = useState(existing?.name || "");
-  const [startDate, setStartDate] = useState(existing?.startDate || "");
-  const [endDate, setEndDate] = useState(existing?.endDate || "");
-  const [status, setStatus] = useState(existing?.status || "Upcoming");
-  const [courses, setCourses] = useState(existing?.courses || []);
-  const [description, setDescription] = useState(existing?.description || "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const [courseDropdownOpen, setCourseDropdownOpen] = useState(false);
   const [courseSearch, setCourseSearch] = useState("");
@@ -65,15 +44,82 @@ const AddBatchPage = () => {
 
   const filteredCourseOptions = useMemo(() => {
     const q = courseSearch.trim().toLowerCase();
-    if (!q) return COURSE_OPTIONS;
-    return COURSE_OPTIONS.filter((c) => c.toLowerCase().includes(q));
-  }, [courseSearch]);
+    const list = Array.isArray(courseOptions) ? courseOptions : [];
+    if (!q) return list;
+    return list.filter((c) => String(c.courseCode || "").toLowerCase().includes(q));
+  }, [courseSearch, courseOptions]);
 
-  const toggleCourse = (course) => {
-    setCourses((prev) => {
-      if (prev.includes(course)) return prev.filter((c) => c !== course);
-      return [...prev, course];
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchCourses = async () => {
+      setError(null);
+      try {
+        const data = await academicService.getCourses();
+        if (isMounted) {
+          setCourseOptions(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err?.message || "Failed to load courses");
+        }
+      }
+    };
+
+    fetchCourses();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isEdit || !batchId) return;
+    let isMounted = true;
+
+    const fetchBatch = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await academicService.getBatchById(batchId);
+        if (isMounted) {
+          setBatchName(data?.batchName || "");
+          setStartDate(data?.startDate || "");
+          setEndDate(data?.endDate || "");
+          setStatus(data?.status || "UPCOMING");
+          setDescription(data?.description || "");
+          const ids = Array.isArray(data?.courses) ? data.courses.map((c) => c.courseId).filter(Boolean) : [];
+          setCourseIds(ids);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err?.message || "Failed to load batch");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchBatch();
+    return () => {
+      isMounted = false;
+    };
+  }, [batchId, isEdit]);
+
+  const toggleCourse = (courseId) => {
+    setCourseIds((prev) => {
+      if (prev.includes(courseId)) return prev.filter((c) => c !== courseId);
+      return [...prev, courseId];
     });
+  };
+
+  const getApiErrorMessage = (err, fallback) => {
+    const apiMessage = err?.response?.data?.message;
+    if (typeof apiMessage === "string" && apiMessage.trim()) return apiMessage;
+    const message = err?.message;
+    if (typeof message === "string" && message.trim()) return message;
+    return fallback;
   };
 
   const validate = (nextEffectiveStatus) => {
@@ -89,7 +135,7 @@ const AddBatchPage = () => {
     if (!endDate) next.endDate = "End Date is required";
 
     if (!nextEffectiveStatus) next.status = "Status is required";
-    if (!courses.length) next.courses = "Please select at least one course";
+    if (!courseIds.length) next.courses = "Please select at least one course";
 
     if (startDate && endDate) {
       const s = new Date(startDate);
@@ -107,7 +153,43 @@ const AddBatchPage = () => {
     e.preventDefault();
     if (!validate(effectiveStatus)) return;
 
-    navigate("/admin/batches");
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        if (isEdit) {
+          await academicService.updateBatch(batchId, {
+            batchName: batchName.trim(),
+            startDate,
+            endDate,
+            status: effectiveStatus,
+            description,
+            courseIds,
+          });
+        } else {
+          await academicService.createBatch({
+            batchName: batchName.trim(),
+            startDate,
+            endDate,
+            description,
+            courseIds,
+          });
+        }
+
+        toast.success(isEdit ? "Batch updated successfully" : "Batch created successfully", {
+          icon: () => <Check size={18} style={{ color: "#16a34a" }} />,
+          autoClose: 2500,
+        });
+
+        navigate("/admin/batches");
+      } catch (err) {
+        const message = getApiErrorMessage(err, "Failed to save batch");
+        setError(message);
+        toast.error(message, { autoClose: 3500 });
+      } finally {
+        setLoading(false);
+      }
+    })();
   };
 
   const endDateInPast = useMemo(() => {
@@ -119,7 +201,12 @@ const AddBatchPage = () => {
     return end < today;
   }, [endDate]);
 
-  const effectiveStatus = endDateInPast ? "Completed" : status;
+  const effectiveStatus = endDateInPast ? "COMPLETED" : status;
+
+  const selectedCourses = useMemo(() => {
+    const byId = new Map((Array.isArray(courseOptions) ? courseOptions : []).map((c) => [c.courseId, c]));
+    return (Array.isArray(courseIds) ? courseIds : []).map((id) => byId.get(id)).filter(Boolean);
+  }, [courseIds, courseOptions]);
 
   return (
     <div className="add-batch-page">
@@ -130,6 +217,8 @@ const AddBatchPage = () => {
           <div className="card-body p-4">
             <h4 className="fw-bold mb-4">{isEdit ? "Add New Batch/ Edit Batch" : "Add New Batch/ Edit Batch"}</h4>
 
+            {error ? <div className="alert alert-danger">{error}</div> : null}
+
             <form onSubmit={handleSave}>
               <div className="row g-4">
                 <div className="col-12 col-md-7">
@@ -139,7 +228,7 @@ const AddBatchPage = () => {
                     className={`form-control ${errors.batchName ? "is-invalid" : ""}`}
                     value={batchName}
                     onChange={(e) => setBatchName(e.target.value)}
-                    placeholder="DAC-2024-Jan"
+                    placeholder="FEB_2025"
                   />
                   {errors.batchName ? <div className="invalid-feedback">{errors.batchName}</div> : null}
                 </div>
@@ -152,9 +241,9 @@ const AddBatchPage = () => {
                     onChange={(e) => setStatus(e.target.value)}
                     disabled={endDateInPast}
                   >
-                    <option value="Active">Active</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Upcoming">Upcoming</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="UPCOMING">Upcoming</option>
                   </select>
                   {errors.status ? <div className="invalid-feedback">{errors.status}</div> : null}
                 </div>
@@ -192,18 +281,18 @@ const AddBatchPage = () => {
                       style={{ cursor: "pointer" }}
                     >
                       <div className="d-flex align-items-center flex-wrap gap-2" style={{ minHeight: 24 }}>
-                        {courses.length ? (
-                          courses.map((c) => (
+                        {selectedCourses.length ? (
+                          selectedCourses.map((c) => (
                             <span
-                              key={c}
+                              key={c.courseId}
                               className="badge text-bg-light border"
                               style={{ fontWeight: 600 }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleCourse(c);
+                                toggleCourse(c.courseId);
                               }}
                             >
-                              {c} <span className="ms-1">×</span>
+                              {c.courseCode} <span className="ms-1">×</span>
                             </span>
                           ))
                         ) : (
@@ -239,15 +328,15 @@ const AddBatchPage = () => {
 
                         <div style={{ maxHeight: 220, overflowY: "auto" }}>
                           {filteredCourseOptions.map((course) => {
-                            const selected = courses.includes(course);
+                            const selected = courseIds.includes(course.courseId);
                             return (
                               <button
                                 type="button"
-                                key={course}
+                                key={course.courseId}
                                 className="w-100 btn text-start d-flex align-items-center justify-content-between px-3 py-2"
-                                onClick={() => toggleCourse(course)}
+                                onClick={() => toggleCourse(course.courseId)}
                               >
-                                <span style={{ color: "#4f46e5", fontWeight: 600 }}>{course}</span>
+                                <span style={{ color: "#4f46e5", fontWeight: 600 }}>{course.courseCode}</span>
                                 {selected ? <Check size={18} style={{ color: "#4f46e5" }} /> : <span />}
                               </button>
                             );
@@ -275,7 +364,7 @@ const AddBatchPage = () => {
                     Cancel
                   </button>
                   <button type="submit" className="btn btn-primary">
-                    Save Batch
+                    {loading ? "Saving..." : "Save Batch"}
                   </button>
                 </div>
               </div>

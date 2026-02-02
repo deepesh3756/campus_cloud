@@ -6,6 +6,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.campuscloud.users_service.dto.ApiResponse;
 import com.campuscloud.users_service.dto.AdminRegisterRequestDto;
 import com.campuscloud.users_service.dto.FacultyRegisterRequestDto;
 import com.campuscloud.users_service.dto.LoginRequestDTO;
@@ -27,45 +28,15 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuthController 
 {
-    private final AuthService authService;
     private final RefreshTokenService refreshTokenService;
     private final JwtUtil jwtUtil;
     private final CookieUtil cookieUtil;
     private final CsrfTokenUtil csrfTokenUtil;
     
-    @PostMapping("/register/admin")
-    public ResponseEntity<String> registerAdmin(
-    		@RequestBody AdminRegisterRequestDto request) 
-    {
-    	authService.registerAdmin(request);
-    	return ResponseEntity
-    			.status(HttpStatus.CREATED)
-    			.body("Admin registered successfully");
-    }
-
-    @PostMapping("/register/faculty")
-    public ResponseEntity<String> registerFaculty(
-            @RequestBody FacultyRegisterRequestDto request
-    ) {
-        authService.registerFaculty(request);
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body("Faculty registered successfully");
-    }
+    private final AuthService authService;
     
-    @PostMapping("/register/student")
-    public ResponseEntity<String> registerStudent(
-            @RequestBody StudentRegisterRequestDto request
-    ) {
-        authService.registerStudent(request);
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body("Student registered successfully");
-    }
-
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDTO> login2(
+    public ResponseEntity<ApiResponse<LoginResponseDTO>> login2(
             @RequestBody LoginRequestDTO request
     ) {
         // 1️⃣ Authenticate (internal result)
@@ -94,11 +65,11 @@ public class AuthController
         return ResponseEntity.ok()
             .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
             .header(HttpHeaders.SET_COOKIE, csrfCookie.toString())
-            .body(response);
+            .body(ApiResponse.success("Login successful", response));
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<LoginResponseDTO> refreshToken(
+    public ResponseEntity<ApiResponse<LoginResponseDTO>> refreshToken(
             @CookieValue(name = "refreshToken", required = false)
             String refreshTokenValue
     ) {
@@ -148,11 +119,11 @@ public class AuthController
         return ResponseEntity.ok()
             .header(HttpHeaders.SET_COOKIE, newRefreshCookie.toString())
             .header(HttpHeaders.SET_COOKIE, newCsrfCookie.toString())
-            .body(response);
+            .body(ApiResponse.success(response));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(
+    public ResponseEntity<ApiResponse<Void>> logout(
             @CookieValue(name = "refreshToken", required = false)
             String refreshTokenValue
     ) {
@@ -180,7 +151,7 @@ public class AuthController
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, deleteRefreshCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, deleteCsrfCookie.toString())
-                .build();
+                .body(ApiResponse.success("Logged out", null));
     }
 
 

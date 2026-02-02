@@ -1,90 +1,107 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import AdminBreadcrumb from "../../components/common/AdminBreadcrumb";
+import academicService from "../../services/api/academicService";
+import ConfirmDeleteModal from "../../components/common/ConfirmDeleteModal";
+import { toast } from "react-toastify";
 
 const BatchesPage = () => {
   const navigate = useNavigate();
-  const [selectedBatchId, setSelectedBatchId] = useState(null);
 
-  const batches = useMemo(
-    () => [
-      {
-        id: "aug-2025",
-        name: "August-2025",
-        startDate: "2025-08-01",
-        endDate: "2026-02-01",
-        totalStudents: 320,
-        courses: "Data Structures, Algorithms, Web Development",
-        status: "Active",
-      },
-      {
-        id: "feb-2025",
-        name: "February-2025",
-        startDate: "2025-02-20",
-        endDate: "2025-07-20",
-        totalStudents: 305,
-        courses: "Marketing, Finance, HR Management",
-        status: "Completed",
-      },
-      {
-        id: "aug-2024",
-        name: "August-2024",
-        startDate: "2024-08-01",
-        endDate: "2025-02-01",
-        totalStudents: 289,
-        courses: "Circuit Analysis, Digital Electronics",
-        status: "Completed",
-      },
-      {
-        id: "feb-2024",
-        name: "February-2024",
-        startDate: "2024-02-20",
-        endDate: "2024-07-20",
-        totalStudents: 350,
-        courses: "Literature, Philosophy, History",
-        status: "Completed",
-      },
-      {
-        id: "aug-2023",
-        name: "August-2023",
-        startDate: "2023-08-01",
-        endDate: "2024-02-01",
-        totalStudents: 380,
-        courses: "Thermodynamics, Fluid Mechanics",
-        status: "Completed",
-      },
-    ],
-    []
-  );
+  const [batches, setBatches] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const selectedBatch = batches.find((b) => b.id === selectedBatchId) || null;
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const breadcrumbItems = selectedBatch
-    ? [
-        { label: "Batches", to: "/admin/batches" },
-        { label: selectedBatch.name },
-      ]
-    : [{ label: "Batches" }];
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchBatches = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await academicService.getBatches();
+        if (isMounted) {
+          const batchList = Array.isArray(data) ? data : [];
+          // Sort by startDate descending (newest first)
+          batchList.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+          setBatches(batchList);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err?.message || "Failed to load batches");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchBatches();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const breadcrumbItems = [{ label: "Batches" }];
 
   const getStatusBadgeClass = (status) => {
-    if (status === "Active") return "badge rounded-pill text-bg-primary";
-    if (status === "Completed") return "badge rounded-pill text-bg-light border text-secondary";
+    const s = String(status || "").toUpperCase();
+    if (s === "ACTIVE") return "badge rounded-pill text-bg-primary";
+    if (s === "COMPLETED") return "badge rounded-pill text-bg-light border text-secondary";
     return "badge rounded-pill text-bg-light border text-secondary";
+  };
+
+  const getApiErrorMessage = (err, fallback) => {
+    const apiMessage = err?.response?.data?.message;
+    if (typeof apiMessage === "string" && apiMessage.trim()) return apiMessage;
+    const message = err?.message;
+    if (typeof message === "string" && message.trim()) return message;
+    return fallback;
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget?.batchId) return;
+    setDeleting(true);
+    try {
+      await academicService.deleteBatch(deleteTarget.batchId);
+      setBatches((prev) => prev.filter((b) => b.batchId !== deleteTarget.batchId));
+      toast.success("Batch deleted successfully", { autoClose: 2500 });
+      setDeleteTarget(null);
+    } catch (err) {
+      const message = getApiErrorMessage(err, "Failed to delete batch");
+      toast.error(message, { autoClose: 3500 });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
     <div className="batches-page">
       <AdminBreadcrumb items={breadcrumbItems} />
 
-      <div className="d-flex align-items-start justify-content-end gap-3 mb-3">
+      <ConfirmDeleteModal
+        isOpen={Boolean(deleteTarget)}
+        title="Delete Batch"
+        message={deleteTarget ? `Are you sure you want to delete ${deleteTarget.batchName}?` : "Are you sure you want to delete?"}
+        loading={deleting}
+        onCancel={() => (deleting ? null : setDeleteTarget(null))}
+        onConfirm={handleConfirmDelete}
+      />
+
+      <div className="d-flex align-items-center justify-content-between gap-3 mb-3">
+        <h4 className="fw-bold mb-0">Batch List</h4>
         <button
           type="button"
           className="btn btn-primary d-inline-flex align-items-center gap-2"
           onClick={() => navigate("/admin/batches/new")}
         >
           <Plus size={18} />
-          Add Batch
+          Add New Batch
         </button>
       </div>
 
@@ -122,22 +139,34 @@ const BatchesPage = () => {
               </thead>
 
               <tbody>
-                {batches.map((batch, idx) => (
-                  <tr key={batch.id}>
+                {loading ? (
+                  <tr>
+                    <td className="px-4 py-4 text-center text-secondary" colSpan={8}>
+                      Loading...
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td className="px-4 py-4 text-center text-danger" colSpan={8}>
+                      {error}
+                    </td>
+                  </tr>
+                ) : batches.length ? (
+                  batches.map((batch, idx) => (
+                    <tr key={batch.batchId}>
                     <td className="px-4 py-3 text-secondary text-center">{idx + 1}</td>
 
                     <td className="px-4 py-3 text-center">
                       <NavLink
-                        to={`/admin/batches/${batch.id}`}
+                        to={`/admin/batches/${batch.batchId}`}
                         className="text-decoration-none"
                         onClick={(e) => {
                           e.preventDefault();
-                          setSelectedBatchId(batch.id);
-                          navigate(`/admin/batches/${batch.id}`);
+                          navigate(`/admin/batches/${batch.batchId}`);
                         }}
                         style={{ color: "#4f46e5", fontWeight: 600 }}
                       >
-                        {batch.name}
+                        {batch.batchName}
                       </NavLink>
                     </td>
 
@@ -149,10 +178,10 @@ const BatchesPage = () => {
                       {batch.endDate}
                     </td>
 
-                    <td className="px-4 py-3 text-secondary text-center">{batch.totalStudents}</td>
+                    <td className="px-4 py-3 text-secondary text-center">-</td>
 
                     <td className="px-4 py-3 text-secondary text-center" style={{ minWidth: 260 }}>
-                      {batch.courses}
+                      {typeof batch.totalCourses === "number" ? batch.totalCourses : "-"}
                     </td>
 
                     <td className="px-4 py-3 text-center">
@@ -164,17 +193,28 @@ const BatchesPage = () => {
                         <button
                           type="button"
                           className="btn btn-sm btn-link p-0 text-secondary"
-                          onClick={() => navigate(`/admin/batches/${batch.id}/edit`)}
+                          onClick={() => navigate(`/admin/batches/${batch.batchId}/edit`)}
                         >
                           <Pencil size={16} />
                         </button>
-                        <button type="button" className="btn btn-sm btn-link p-0 text-danger">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-link p-0 text-danger"
+                          onClick={() => setDeleteTarget(batch)}
+                        >
                           <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="px-4 py-4 text-center text-secondary" colSpan={8}>
+                      No batches found.
+                    </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

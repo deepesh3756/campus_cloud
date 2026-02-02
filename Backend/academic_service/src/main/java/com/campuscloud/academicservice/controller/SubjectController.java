@@ -3,6 +3,7 @@ package com.campuscloud.academicservice.controller;
 
 
 import com.campuscloud.academicservice.dto.request.CreateSubjectRequest;
+import com.campuscloud.academicservice.dto.request.UpdateSubjectRequest;
 import com.campuscloud.academicservice.dto.response.ApiResponse;
 import com.campuscloud.academicservice.dto.response.SubjectDTO;
 import com.campuscloud.academicservice.service.SubjectService;
@@ -44,6 +45,16 @@ public class SubjectController {
         log.info("Get all subjects request");
         List<SubjectDTO> subjects = subjectService.getAllSubjects();
         return ResponseEntity.ok(ApiResponse.success(subjects));
+    }
+
+    @PutMapping("/{subjectId}")
+    public ResponseEntity<ApiResponse<SubjectDTO>> updateSubject(
+            @PathVariable Long subjectId,
+            @Valid @RequestBody UpdateSubjectRequest request
+    ) {
+        log.info("Update subject request: {}", subjectId);
+        SubjectDTO subject = subjectService.updateSubject(subjectId, request);
+        return ResponseEntity.ok(ApiResponse.success("Subject updated successfully", subject));
     }
     
     @DeleteMapping("/{subjectId}")

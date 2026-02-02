@@ -1,61 +1,118 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Download, Pencil, Trash2, Plus } from "lucide-react";
+import JSZip from "jszip";
+import { toast } from "react-toastify";
 
 import CourseBreadcrumb from "../../components/faculty/CourseBreadcrumb";
+import assignmentService from "../../services/api/assignmentService";
 
 const AssignmentsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const {
-    courseId = null,
-    courseName = "PG-DAC",
-    subjectId = null,
+    batchId = null,
+    batchName = null,
+    courseCode = null,
+    courseName = null,
+    subjects = [],
+    batchCourseSubjectId = null,
+    subjectCode = null,
     subjectName = null,
   } = location.state || {};
 
-  const assignments = useMemo(
-    () => [
-      {
-        id: "a1",
-        title: "Introduction to C++",
-        dueDate: "2023-10-26",
-        progress: 75,
-      },
-      {
-        id: "a2",
-        title: "Operating System Concepts",
-        dueDate: "2023-11-01",
-        progress: 50,
-      },
-      {
-        id: "a3",
-        title: "Java Fundamentals",
-        dueDate: "2023-11-10",
-        progress: 90,
-      },
-      {
-        id: "a4",
-        title: "Inheritance in Java",
-        dueDate: "2023-11-10",
-        progress: 90,
-      },
-      {
-        id: "a5",
-        title: "Overriding in Java",
-        dueDate: "2023-11-10",
-        progress: 90,
-      },
-    ],
-    []
-  );
+  const [loading, setLoading] = useState(false);
+  const [downloadLoadingId, setDownloadLoadingId] = useState(null);
+  const [error, setError] = useState(null);
+  const [assignments, setAssignments] = useState([]);
+  const [analyticsByAssignmentId, setAnalyticsByAssignmentId] = useState({});
+
+  useEffect(() => {
+    if (!batchCourseSubjectId) return;
+
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const data = await assignmentService.getAssignmentsBySubject(batchCourseSubjectId);
+        if (!mounted) return;
+
+        const list = (Array.isArray(data) ? data : []).slice().sort((a, b) => {
+          const da = a?.createdAt ? new Date(a.createdAt).getTime() : Number.POSITIVE_INFINITY;
+          const db = b?.createdAt ? new Date(b.createdAt).getTime() : Number.POSITIVE_INFINITY;
+          const na = Number.isFinite(da) ? da : Number.POSITIVE_INFINITY;
+          const nb = Number.isFinite(db) ? db : Number.POSITIVE_INFINITY;
+          return na - nb;
+        });
+
+        setAssignments(list);
+      } catch (e) {
+        if (!mounted) return;
+        setAssignments([]);
+        setError(e?.response?.data?.message || "Failed to load assignments");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [batchCourseSubjectId]);
+
+  useEffect(() => {
+    if (!assignments.length) return;
+
+    let mounted = true;
+    (async () => {
+      try {
+        const pairs = await Promise.all(
+          assignments.map(async (a) => {
+            try {
+              const analytics = await assignmentService.getAssignmentAnalytics(a.assignmentId);
+              return [a.assignmentId, analytics];
+            } catch {
+              return [a.assignmentId, null];
+            }
+          })
+        );
+
+        if (!mounted) return;
+        setAnalyticsByAssignmentId(Object.fromEntries(pairs));
+      } catch {
+        if (!mounted) return;
+        setAnalyticsByAssignmentId({});
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [assignments]);
+
+  const displayCourseName = useMemo(() => {
+    return courseName || courseCode || "Course";
+  }, [courseCode, courseName]);
+
+  const formatDueDate = (iso) => {
+    if (!iso) return "-";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return String(iso);
+    return d.toLocaleDateString();
+  };
 
   const handleAddAssignment = () => {
     navigate("/faculty/add-assignment", {
       state: {
-        courseId,
+        batchId,
+        batchName,
+        courseCode,
         courseName,
-        subjectId,
+        subjects,
+        batchCourseSubjectId,
+        subjectCode,
         subjectName,
       },
     });
@@ -64,31 +121,122 @@ const AssignmentsPage = () => {
   const handleOpenAnalytics = (assignment) => {
     navigate("/faculty/analytics", {
       state: {
-        courseId,
+        batchId,
+        batchName,
+        courseCode,
         courseName,
-        subjectId,
+        subjects,
+        batchCourseSubjectId,
+        subjectCode,
         subjectName,
-        assignmentId: assignment.id,
+        assignmentId: assignment.assignmentId,
         assignmentTitle: assignment.title,
       },
     });
   };
 
-  const handleBatchDownload = (assignment) => {
-    console.log("Batch download", { assignmentId: assignment.id });
+  const handleBatchDownload = async (assignment) => {
+    const assignmentId = assignment?.assignmentId;
+    if (!assignmentId) return;
+
+    try {
+      setDownloadLoadingId(assignmentId);
+      toast.info("Preparing download...");
+
+      const submissions = await assignmentService.getSubmissions(assignmentId);
+      const list = Array.isArray(submissions) ? submissions : [];
+      const submitted = list.filter((s) => s?.fileUrl);
+
+      if (submitted.length === 0) {
+        toast.info("No submissions found for this assignment.");
+        return;
+      }
+
+      const zip = new JSZip();
+      const folder = zip.folder(`assignment_${assignmentId}`);
+
+      for (const s of submitted) {
+        const submissionId = s?.submissionId;
+        if (!submissionId) continue;
+        const namePart = (s?.studentPrn || s?.studentName || `student_${s?.studentUserId || ""}`)
+          .toString()
+          .replace(/[^a-z0-9-_ ]/gi, "_")
+          .trim();
+
+        const fileName = (s?.fileName || `submission_${submissionId}`).toString().replace(/[/\\]/g, "_");
+
+        const { downloadUrl } = (await assignmentService.getSubmissionDownloadUrl(submissionId)) || {};
+        const url = downloadUrl || s?.fileUrl;
+        if (!url) continue;
+
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`Failed to download submission ${submissionId}`);
+        }
+        const blob = await res.blob();
+        folder.file(`${namePart}_${fileName}`, blob);
+      }
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const blobUrl = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `${subjectCode || "subject"}_${assignmentId}_submissions.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+
+      toast.success("Download started.");
+    } catch (e) {
+      toast.error(e?.message || "Failed to download submissions");
+    } finally {
+      setDownloadLoadingId(null);
+    }
   };
 
   const handleEdit = (assignment) => {
-    console.log("Edit assignment", { assignmentId: assignment.id });
+    navigate("/faculty/add-assignment", {
+      state: {
+        mode: "edit",
+        assignmentId: assignment?.assignmentId,
+        batchId,
+        batchName,
+        courseCode,
+        courseName,
+        subjects,
+        batchCourseSubjectId,
+        subjectCode,
+        subjectName,
+      },
+    });
   };
 
-  const handleDelete = (assignment) => {
-    console.log("Delete assignment", { assignmentId: assignment.id });
+  const handleDelete = async (assignment) => {
+    const assignmentId = assignment?.assignmentId;
+    if (!assignmentId) return;
+
+    const ok = window.confirm("Are you sure you want to delete this assignment?");
+    if (!ok) return;
+
+    try {
+      await assignmentService.deleteAssignment(assignmentId);
+      toast.success("Assignment deleted successfully.");
+      setAssignments((prev) => prev.filter((a) => a?.assignmentId !== assignmentId));
+    } catch (e) {
+      toast.error(e?.response?.data?.message || "Failed to delete assignment");
+    }
   };
 
   return (
     <div className="container-fluid">
-      <CourseBreadcrumb courseName={courseName} subjectName={subjectName} />
+      <CourseBreadcrumb
+        batchId={batchId}
+        batchName={batchName}
+        courseName={displayCourseName}
+        subjectName={subjectName}
+        state={location.state}
+      />
 
       <div className="d-flex align-items-center justify-content-between mb-3">
         <div
@@ -150,6 +298,18 @@ const AssignmentsPage = () => {
             <h5 className="fw-semibold mb-3">Assignments</h5>
           </div>
 
+          {!batchCourseSubjectId ? (
+            <div className="px-4 pb-4">
+              <div className="alert alert-warning mb-0">Please select a subject to view assignments.</div>
+            </div>
+          ) : null}
+
+          {error ? (
+            <div className="px-4 pb-4">
+              <div className="alert alert-danger mb-0">{error}</div>
+            </div>
+          ) : null}
+
           <div className="table-responsive">
             <table className="table mb-0 align-middle">
               <thead className="table-light">
@@ -167,8 +327,30 @@ const AssignmentsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {assignments.map((a, idx) => (
-                  <tr key={a.id}>
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="p-4 text-muted">
+                      Loading assignments...
+                    </td>
+                  </tr>
+                ) : null}
+
+                {!loading && assignments.length === 0 && batchCourseSubjectId ? (
+                  <tr>
+                    <td colSpan={6} className="p-4 text-muted">
+                      No assignments found.
+                    </td>
+                  </tr>
+                ) : null}
+
+                {assignments.map((a, idx) => {
+                  const analytics = analyticsByAssignmentId[a.assignmentId];
+                  const total = analytics?.totalStudents ?? 0;
+                  const submitted = (analytics?.submittedCount ?? 0) + (analytics?.evaluatedCount ?? 0);
+                  const progressPct = total > 0 ? Math.round((submitted * 100) / total) : 0;
+
+                  return (
+                  <tr key={a.assignmentId}>
                     <td>{idx + 1}</td>
                     <td>
                       <button
@@ -180,7 +362,7 @@ const AssignmentsPage = () => {
                         {a.title}
                       </button>
                     </td>
-                    <td className="text-muted">{a.dueDate}</td>
+                    <td className="text-muted">{formatDueDate(a.dueDate)}</td>
                     <td>
                       <div className="d-flex align-items-center gap-2">
                         <div className="progress flex-grow-1" style={{ height: 6 }}>
@@ -188,16 +370,16 @@ const AssignmentsPage = () => {
                             className="progress-bar"
                             role="progressbar"
                             style={{
-                              width: `${a.progress}%`,
+                              width: `${progressPct}%`,
                               backgroundColor: "#5B5CE6",
                             }}
-                            aria-valuenow={a.progress}
+                            aria-valuenow={progressPct}
                             aria-valuemin={0}
                             aria-valuemax={100}
                           />
                         </div>
-                        <div className="text-muted small" style={{ minWidth: 36 }}>
-                          {a.progress}%
+                        <div className="text-muted small" style={{ minWidth: 70 }}>
+                          {submitted}/{total}
                         </div>
                       </div>
                     </td>
@@ -208,6 +390,7 @@ const AssignmentsPage = () => {
                         onClick={() => handleBatchDownload(a)}
                         style={{ backgroundColor: "#5B5CE6", borderColor: "#5B5CE6" }}
                         aria-label="Batch download"
+                        disabled={downloadLoadingId === a.assignmentId}
                       >
                         <Download size={16} />
                       </button>
@@ -233,7 +416,8 @@ const AssignmentsPage = () => {
                       </button>
                     </td>
                   </tr>
-                ))}
+                );
+                })}
 
                 
               </tbody>

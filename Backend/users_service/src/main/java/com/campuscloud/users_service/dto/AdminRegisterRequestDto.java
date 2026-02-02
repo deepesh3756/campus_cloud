@@ -1,19 +1,13 @@
 package com.campuscloud.users_service.dto;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class AdminRegisterRequestDto {
+@EqualsAndHashCode(callSuper = true)
+public class AdminRegisterRequestDto extends BaseProfileFieldsDto {
 
     // User data
     private String username;
     private String password;
-
-    // Admin profile data
-    private String firstName;
-    private String lastName;
-    private String email;
-    private String mobile;
-    private String gender; 
-    private String profilePictureUrl;
 }

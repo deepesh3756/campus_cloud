@@ -1,12 +1,15 @@
 package com.campuscloud.users_service.exception;
 
-import java.time.Instant;
 import java.time.OffsetDateTime;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import com.campuscloud.users_service.dto.ApiResponse;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -28,28 +31,55 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ProblemDetail handleRuntime(
+    public ResponseEntity<ApiResponse<ProblemDetail>> handleRuntime(
             RuntimeException ex,
             HttpServletRequest request
     ) {
-        return baseProblem(
-                HttpStatus.BAD_REQUEST,
-                "Bad request",
-                ex.getMessage(),
-                request
+        ProblemDetail problem = baseProblem(
+            HttpStatus.BAD_REQUEST,
+            "Bad request",
+            ex.getMessage(),
+            request
         );
+
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(ApiResponse.error(problem.getDetail(), problem));
     }
 
     @ExceptionHandler(SecurityException.class)
-    public ProblemDetail handleSecurity(
+    public ResponseEntity<ApiResponse<ProblemDetail>> handleSecurity(
             SecurityException ex,
             HttpServletRequest request
     ) {
-        return baseProblem(
-                HttpStatus.FORBIDDEN,
-                "Access denied",
-                ex.getMessage(),
-                request
+        ProblemDetail problem = baseProblem(
+            HttpStatus.FORBIDDEN,
+            "Access denied",
+            ex.getMessage(),
+            request
         );
+
+        return ResponseEntity
+            .status(HttpStatus.FORBIDDEN)
+            .body(ApiResponse.error(problem.getDetail(), problem));
     }
+    
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ApiResponse<ProblemDetail>> handleDisabled(
+            DisabledException ex,
+            HttpServletRequest request
+    ) {
+        ProblemDetail problem = baseProblem(
+            HttpStatus.FORBIDDEN,
+            "Forbidden",
+            "Your account is inactive. Contact admin.",
+            request
+        );
+        problem.setProperty("error", "ACCOUNT_DISABLED");
+
+        return ResponseEntity
+            .status(HttpStatus.FORBIDDEN)
+            .body(ApiResponse.error(problem.getDetail(), problem));
+    }
+
 }

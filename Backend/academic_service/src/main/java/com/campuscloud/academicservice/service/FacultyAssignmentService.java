@@ -80,4 +80,11 @@ public class FacultyAssignmentService {
                 .map(FacultyAssignmentDTO::fromEntity)
                 .collect(Collectors.toList());
     }
+
+    public List<Long> getFacultyUserIdsByBatchCourseId(Long batchCourseId) {
+        if (batchCourseId == null) {
+            throw new RuntimeException("batchCourseId is required");
+        }
+        return facultyAssignmentRepository.findActiveFacultyUserIdsByBatchCourseId(batchCourseId);
+    }
 }

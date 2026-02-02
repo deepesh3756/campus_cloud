@@ -1,21 +1,17 @@
 import { createContext, useState, useEffect } from 'react';
 import authService from '../services/api/authService';
 import { tokenService } from '../services/storage/tokenService';
+import userService from '../services/api/userService';
 
 const AuthContext = createContext(null);
 
-// ========================================
-// TEMP MOCK AUTH - FOR FRONTEND TESTING ONLY
-// ========================================
-// Change role to: "student" | "faculty" | "admin"
-const MOCK_USER = {
-  id: 1,
-  name: "Mohit",
-  email: "mohit@campuscloud.com",
-  role: "admin" // 👈 CHANGE THIS TO TEST DIFFERENT ROLES
+const normalizeUser = (u) => {
+  if (!u) return u;
+  return {
+    ...u,
+    role: typeof u.role === 'string' ? u.role.toLowerCase() : u.role,
+  };
 };
-const MOCK_TOKEN = "mock-token-temporary-for-testing";
-// ========================================"
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -25,17 +21,16 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       const token = tokenService.getToken();
       if (token) {
-        // TEMP MOCK AUTH: Check for mock token
-        if (token === MOCK_TOKEN) {
-          setUser(MOCK_USER);
-        } else {
-          // ⬇️ ORIGINAL BACKEND CODE (commented out for testing)
-          // try {
-          //   const userData = await authService.getCurrentUser();
-          //   setUser(userData);
-          // } catch (error) {
-          //   tokenService.removeToken();
-          // }
+        try {
+          const me = await userService.getMe();
+          if (me) {
+            const normalizedUser = normalizeUser(me);
+            setUser(normalizedUser);
+            localStorage.setItem('auth_user', JSON.stringify(normalizedUser));
+          }
+        } catch {
+          tokenService.removeToken();
+          localStorage.removeItem('auth_user');
         }
       }
       setLoading(false);
@@ -44,20 +39,31 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async () => {
-    // TEMP MOCK AUTH: Simulate login without backend
-    tokenService.setToken(MOCK_TOKEN);
-    setUser(MOCK_USER);
-    return {
-      token: MOCK_TOKEN,
-      user: MOCK_USER
-    };
+  const login = async (credentials) => {
+    const response = await authService.login(credentials);
+
+    // authService.login already returns the unwrapped data: { accessToken, user, ... }
+    const { accessToken, user } = response || {};
     
-    // ⬇️ ORIGINAL BACKEND CODE (commented out for testing)
-    // const response = await authService.login(credentials);
-    // tokenService.setToken(response.token);
-    // setUser(response.user);
-    // return response;
+    if (!accessToken) {
+      throw new Error('Login failed: No access token received');
+    }
+    
+    tokenService.setToken(accessToken);
+
+    try {
+      const me = await userService.getMe();
+      const normalizedUser = normalizeUser(me || user);
+
+      setUser(normalizedUser);
+      localStorage.setItem('auth_user', JSON.stringify(normalizedUser));
+    } catch {
+      const normalizedUser = normalizeUser(user);
+      setUser(normalizedUser);
+      localStorage.setItem('auth_user', JSON.stringify(normalizedUser));
+    }
+
+    return response;
   };
 
   const register = async (userData) => {
@@ -72,6 +78,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout error:', error);
     } finally {
       tokenService.removeToken();
+      localStorage.removeItem('auth_user');
       setUser(null);
     }
   };

@@ -2,10 +2,12 @@ import "./LoginModal.css";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 const LoginModal = ({ show, onClose }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const { login, user } = useAuth();
   const navigate = useNavigate();
@@ -59,13 +61,23 @@ const LoginModal = ({ show, onClose }) => {
             {/* Password */}
             <div className="mb-3">
               <label className="form-label">Password</label>
-              <input
-                type="password"
-                className="form-control"
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-              />
+              <div className="input-group">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="form-control"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={() => setShowPassword(v => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
             {/* Remember / forgot */}
             <div className="d-flex justify-content-between align-items-center mb-4">

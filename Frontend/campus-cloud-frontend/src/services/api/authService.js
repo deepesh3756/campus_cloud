@@ -2,36 +2,41 @@ import api from './axios.config';
 
 export const authService = {
   login: async (credentials) => {
-    // MOCK: Allow login for username 's' and password 's'
-    if (credentials.username === 's' && credentials.password === 's') {
-      return {
-        token: 'mock-student-token',
-        user: {
-          id: 1,
-          username: 's',
-          role: 'student',
-          name: 'Mock Student',
-        },
-      };
-    }
-    // Fallback to real API
-    const response = await api.post('/auth/login', credentials);
-    return response.data;
+    const response = await api.post('/api/users/login', credentials);
+    return response.data?.data ?? response.data;
+  },
+
+  registerStudent: async (payload) => {
+    const response = await api.post('/api/users/register/student', payload);
+    return response.data?.data ?? response.data;
+  },
+
+  registerFaculty: async (payload) => {
+    const response = await api.post('/api/users/register/faculty', payload);
+    return response.data?.data ?? response.data;
   },
 
   register: async (userData) => {
-    const response = await api.post('/auth/register', userData);
-    return response.data;
+    const role = (userData?.role || '').toLowerCase();
+    const endpoint =
+      role === 'admin'
+        ? '/api/users/register/admin'
+        : role === 'faculty'
+          ? '/api/users/register/faculty'
+          : '/api/users/register/student';
+
+    const response = await api.post(endpoint, userData);
+    return response.data?.data ?? response.data;
   },
 
   logout: async () => {
-    const response = await api.post('/auth/logout');
-    return response.data;
+    const response = await api.post('/api/users/logout', {});
+    return response.data?.data ?? response.data;
   },
 
   getCurrentUser: async () => {
-    const response = await api.get('/auth/me');
-    return response.data;
+    const stored = localStorage.getItem('auth_user');
+    return stored ? JSON.parse(stored) : null;
   },
 };
 

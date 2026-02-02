@@ -48,4 +48,11 @@ public class FacultyAssignmentController {
         List<FacultyAssignmentDTO> faculties = facultyAssignmentService.getFacultiesBySubject(batchCourseSubjectId);
         return ResponseEntity.ok(ApiResponse.success(faculties));
     }
+
+    @GetMapping("/batch-course/{batchCourseId}/faculty-ids")
+    public ResponseEntity<ApiResponse<List<Long>>> getFacultyIdsByBatchCourse(
+            @PathVariable Long batchCourseId) {
+        log.info("Get faculty IDs for batch-course: {}", batchCourseId);
+        return ResponseEntity.ok(ApiResponse.success(facultyAssignmentService.getFacultyUserIdsByBatchCourseId(batchCourseId)));
+    }
 }

@@ -13,7 +13,7 @@ const StudentBreadcrumb = ({ items = [] }) => {
           return (
             <div className="student-breadcrumb-item" key={`${item.label}-${idx}`}>
               {item.to && !isLast ? (
-                <NavLink to={item.to} className="student-breadcrumb-link">
+                <NavLink to={item.to} state={item.state} className="student-breadcrumb-link">
                   {item.label}
                 </NavLink>
               ) : (

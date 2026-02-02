@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "../../hooks/useAuth";
+import api from "../../services/api/axios.config";
 import NotificationDropdown from "../student/NotificationDropdown";
 
 import "./SiteNavbar.css";
@@ -11,12 +12,51 @@ const SiteNavbar = ({ onLoginClick, links, brandSuffix }) => {
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [failedProfilePictureUrl, setFailedProfilePictureUrl] = useState(null);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
   const navbarRef = useRef(null);
+
+  const refreshUnreadCount = useCallback(async () => {
+    const userId = user?.userId;
+    if (!userId || user?.role !== "student") {
+      setUnreadCount(0);
+      return;
+    }
+
+    try {
+      const response = await api.get(`/api/notifications/user/${userId}/unread-count`);
+      const payload = response.data?.data ?? response.data;
+      const count = payload?.count;
+      setUnreadCount(typeof count === "number" ? count : 0);
+    } catch {
+      setUnreadCount(0);
+    }
+  }, [user?.role, user?.userId]);
+
+  useEffect(() => {
+    refreshUnreadCount();
+    const intervalId = window.setInterval(() => {
+      refreshUnreadCount();
+    }, 15000);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshUnreadCount();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [refreshUnreadCount]);
 
   const handleLogout = async () => {
     await logout();
@@ -134,16 +174,6 @@ const SiteNavbar = ({ onLoginClick, links, brandSuffix }) => {
                   </>
                 )}
 
-                {user?.role === "faculty" && (
-                  <>
-                    <li className="nav-item">
-                      <NavLink className="nav-link fw-medium" to="/faculty/dashboard">
-                        Dashboard
-                      </NavLink>
-                    </li>
-                  </>
-                )}
-
                 <li className="nav-item">
                   <NavLink className="nav-link fw-medium" to="/about">
                     About Us
@@ -182,16 +212,20 @@ const SiteNavbar = ({ onLoginClick, links, brandSuffix }) => {
                     onClick={() => {
                       setShowNotification((prev) => !prev);
                       setShowDropdown(false);
+                      refreshUnreadCount();
                     }}
                   >
                     <i className="bi bi-bell fs-5"></i>
 
-                    <span className="notification-badge">4</span>
+                    {unreadCount > 0 ? (
+                      <span className="notification-badge">{unreadCount}</span>
+                    ) : null}
                   </button>
 
                   {showNotification && (
                     <NotificationDropdown
                       onClose={() => setShowNotification(false)}
+                      onNotificationsUpdated={refreshUnreadCount}
                     />
                   )}
                 </div>
@@ -207,16 +241,28 @@ const SiteNavbar = ({ onLoginClick, links, brandSuffix }) => {
                   }}
                 >
                   <div className="position-relative">
-                    <div
-                      className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-                      style={{
-                        width: 38,
-                        height: 38,
-                        backgroundColor: "#6f42c1",
-                      }}
-                    >
-                      {user?.name?.[0] || "U"}
-                    </div>
+                    {user?.profilePictureUrl && user?.profilePictureUrl !== failedProfilePictureUrl ? (
+                      <img
+                        src={user.profilePictureUrl}
+                        alt="profile"
+                        className="rounded-circle border"
+                        width="38"
+                        height="38"
+                        style={{ objectFit: "cover" }}
+                        onError={() => setFailedProfilePictureUrl(user.profilePictureUrl)}
+                      />
+                    ) : (
+                      <div
+                        className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+                        style={{
+                          width: 38,
+                          height: 38,
+                          backgroundColor: "#6f42c1",
+                        }}
+                      >
+                        {(user?.firstName || user?.name || user?.username || "U")[0]?.toUpperCase()}
+                      </div>
+                    )}
 
                     <span
                       className="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle"
@@ -227,6 +273,15 @@ const SiteNavbar = ({ onLoginClick, links, brandSuffix }) => {
 
                 {showDropdown && (
                   <ul className="profile-dropdown-menu">
+                    <li className="px-3 pt-2 pb-0 text-muted " style={{ fontSize: 13 }}>
+                      {(() => {
+                        const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
+                        return fullName || user?.name || user?.username || "User";
+                      })()}
+                    </li>
+                    <li>
+                      <hr className="dropdown-divider my-1" />
+                    </li>
                     <li>
                       <NavLink
                         to={`/${user.role}/profile`}

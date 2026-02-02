@@ -161,9 +161,6 @@ CREATE TABLE students (
 
     user_id BIGINT NOT NULL UNIQUE,
 
-    -- Batch-Course mapping (student enrolled in a specific batch-course)
-    batch_course_id BIGINT NOT NULL,
-
     prn VARCHAR(50) UNIQUE NOT NULL,
 
     first_name VARCHAR(100) NOT NULL,
@@ -198,7 +195,6 @@ CREATE TABLE students (
 
 INSERT INTO students (
     user_id,
-    batch_course_id,
     prn,
     first_name,
     last_name,
@@ -209,7 +205,6 @@ INSERT INTO students (
 ) VALUES
 (
     5,
-    1,
     'PRN251001',
     'Aarav',
     'Sharma',
@@ -220,7 +215,6 @@ INSERT INTO students (
 ),
 (
     6,
-    2,
     'PRN251002',
     'Riya',
     'Patel',
@@ -231,7 +225,6 @@ INSERT INTO students (
 ),
 (
     7,
-    5,
     'PRN252001',
     'Kabir',
     'Mehta',

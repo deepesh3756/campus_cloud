@@ -1,283 +1,316 @@
-import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { Check, ChevronDown, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import AdminBreadcrumb from "../../components/common/AdminBreadcrumb";
-
-const FACULTY_OPTIONS = [
-  "Pankaj",
-  "Dhananjay",
-  "Anu mitra",
-  "Madhuri",
-  "Swati",
-  "Amit rajpoot",
-  "Atul wattam",
-  "Kishori Khadilkar",
-  "Trupti sathe",
-  "Jubera khan",
-  "Shweta singh",
-];
+import academicService from "../../services/api/academicService";
+import ConfirmDeleteModal from "../../components/common/ConfirmDeleteModal";
+import { toast } from "react-toastify";
 
 const AddSubjectPage = () => {
-  const navigate = useNavigate();
-  const { subjectId } = useParams();
+  const NEW_SUBJECT_ID = "__new_subject__";
 
-  const isEdit = Boolean(subjectId);
+  const [subjects, setSubjects] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const existingSubjects = useMemo(
-    () => [
-      {
-        id: "cpp01-aug-2025-pg-dac",
-        code: "CPP01",
-        name: "C++",
-        startDate: "2025-08-01",
-        endDate: "2026-02-01",
-        faculties: ["Pankaj", "Dhananjay", "Anu mitra"],
-        status: "Active",
-      },
-    ],
-    []
-  );
+  const [editingSubjectId, setEditingSubjectId] = useState("");
+  const [editDraft, setEditDraft] = useState({ subjectCode: "", subjectName: "" });
 
-  const existing = isEdit ? existingSubjects.find((s) => s.id === subjectId) : null;
-
-  const [subjectCode, setSubjectCode] = useState(existing?.code || "");
-  const [subjectName, setSubjectName] = useState(existing?.name || "");
-  const [startDate, setStartDate] = useState(existing?.startDate || "");
-  const [endDate, setEndDate] = useState(existing?.endDate || "");
-  const [faculties, setFaculties] = useState(existing?.faculties || []);
-  const [status, setStatus] = useState(existing?.status || "Active");
-
-  const [facultyDropdownOpen, setFacultyDropdownOpen] = useState(false);
-  const [facultySearch, setFacultySearch] = useState("");
-
-  const [errors, setErrors] = useState({});
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const breadcrumbItems = useMemo(() => {
-    if (isEdit) {
-      return [{ label: "Subjects", to: "/admin/subjects" }, { label: "Edit Subject" }];
-    }
+    return [{ label: "Subjects", to: "/admin/subjects" }, { label: "Add / Update Subject" }];
+  }, []);
 
-    return [{ label: "Subjects", to: "/admin/subjects" }, { label: "Add Subject" }];
-  }, [isEdit]);
+  const getApiErrorMessage = (err, fallback) => {
+    const apiMessage = err?.response?.data?.message;
+    if (typeof apiMessage === "string" && apiMessage.trim()) return apiMessage;
+    const message = err?.message;
+    if (typeof message === "string" && message.trim()) return message;
+    return fallback;
+  };
 
-  const filteredFacultyOptions = useMemo(() => {
-    const q = facultySearch.trim().toLowerCase();
-    if (!q) return FACULTY_OPTIONS;
-    return FACULTY_OPTIONS.filter((f) => f.toLowerCase().includes(q));
-  }, [facultySearch]);
+  const sortedSubjects = useMemo(() => {
+    const list = Array.isArray(subjects) ? subjects : [];
+    return [...list].sort((a, b) => {
+      return String(a?.subjectCode || "").localeCompare(String(b?.subjectCode || ""));
+    });
+  }, [subjects]);
 
-  const toggleFaculty = (faculty) => {
-    setFaculties((prev) => {
-      if (prev.includes(faculty)) return prev.filter((f) => f !== faculty);
-      return [...prev, faculty];
+  const newSubjectRow = useMemo(() => {
+    return (Array.isArray(sortedSubjects) ? sortedSubjects : []).find((s) => String(s?.subjectId) === NEW_SUBJECT_ID) || null;
+  }, [sortedSubjects]);
+
+  const existingSubjects = useMemo(() => {
+    return (Array.isArray(sortedSubjects) ? sortedSubjects : []).filter((s) => String(s?.subjectId) !== NEW_SUBJECT_ID);
+  }, [sortedSubjects]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchSubjects = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const data = await academicService.getSubjects();
+        if (!isMounted) return;
+        setSubjects(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (!isMounted) return;
+        setError(getApiErrorMessage(err, "Failed to load subjects"));
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchSubjects();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const startEditRow = (subject) => {
+    setEditingSubjectId(String(subject.subjectId));
+    setEditDraft({
+      subjectCode: subject.subjectCode || "",
+      subjectName: subject.subjectName || "",
     });
   };
 
-  const validate = () => {
-    const next = {};
-
-    const trimmedCode = subjectCode.trim();
-    const trimmedName = subjectName.trim();
-
-    if (!trimmedCode) next.subjectCode = "Subject Code is required";
-    else if (trimmedCode.length < 2 || trimmedCode.length > 20) {
-      next.subjectCode = "Subject Code must be 2-20 characters";
+  const cancelEditRow = () => {
+    if (String(editingSubjectId) === NEW_SUBJECT_ID) {
+      setSubjects((prev) => prev.filter((s) => String(s.subjectId) !== NEW_SUBJECT_ID));
     }
-
-    if (!trimmedName) next.subjectName = "Subject Name is required";
-    else if (trimmedName.length < 2 || trimmedName.length > 100) {
-      next.subjectName = "Subject Name must be 2-100 characters";
-    }
-
-    if (!startDate) next.startDate = "Start Date is required";
-    if (!endDate) next.endDate = "End Date is required";
-
-    if (startDate && endDate) {
-      const s = new Date(startDate);
-      const e = new Date(endDate);
-      s.setHours(0, 0, 0, 0);
-      e.setHours(0, 0, 0, 0);
-      if (e < s) next.endDate = "End Date cannot be before Start Date";
-    }
-
-    if (!faculties.length) next.faculties = "Please select at least one faculty";
-    if (!status) next.status = "Status is required";
-
-    setErrors(next);
-    return Object.keys(next).length === 0;
+    setEditingSubjectId("");
+    setEditDraft({ subjectCode: "", subjectName: "" });
   };
 
-  const handleSave = (e) => {
-    e.preventDefault();
-    if (!validate()) return;
+  const saveEditRow = async (subjectId) => {
+    const code = String(editDraft.subjectCode || "").trim();
+    const name = String(editDraft.subjectName || "").trim();
+    if (!code || !name) {
+      toast.error("Please provide Subject Code and Subject Name", { autoClose: 3500 });
+      return;
+    }
 
-    navigate("/admin/subjects");
+    if (String(subjectId) === NEW_SUBJECT_ID) {
+      try {
+        const created = await academicService.createSubject({ subjectCode: code, subjectName: name });
+        setSubjects((prev) => {
+          const cleaned = prev.filter((s) => String(s.subjectId) !== NEW_SUBJECT_ID);
+          return [...cleaned, created];
+        });
+        cancelEditRow();
+        toast.success("Subject created successfully", { autoClose: 2500 });
+      } catch (err) {
+        toast.error(getApiErrorMessage(err, "Failed to create subject"), { autoClose: 3500 });
+      }
+      return;
+    }
+
+    const sid = Number(subjectId);
+    if (!sid) return;
+
+    try {
+      const updated = await academicService.updateSubject(sid, { subjectCode: code, subjectName: name });
+      setSubjects((prev) => prev.map((s) => (s.subjectId === sid ? updated : s)));
+      cancelEditRow();
+      toast.success("Subject updated successfully", { autoClose: 2500 });
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to update subject"), { autoClose: 3500 });
+    }
+  };
+
+  const addNewSubjectRow = () => {
+    if (String(editingSubjectId) === NEW_SUBJECT_ID) return;
+    if (subjects.some((s) => String(s.subjectId) === NEW_SUBJECT_ID)) return;
+
+    setSubjects((prev) => [
+      ...prev,
+      {
+        subjectId: NEW_SUBJECT_ID,
+        subjectCode: "",
+        subjectName: "",
+      },
+    ]);
+    setEditingSubjectId(NEW_SUBJECT_ID);
+    setEditDraft({ subjectCode: "", subjectName: "" });
+  };
+
+  const confirmDeleteSubject = (subject) => {
+    setDeleteTarget(subject);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget?.subjectId) return;
+    if (String(deleteTarget.subjectId) === NEW_SUBJECT_ID) {
+      setDeleteTarget(null);
+      setSubjects((prev) => prev.filter((s) => String(s.subjectId) !== NEW_SUBJECT_ID));
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      await academicService.deleteSubject(deleteTarget.subjectId);
+      setSubjects((prev) => prev.filter((s) => s.subjectId !== deleteTarget.subjectId));
+      toast.success("Subject deleted successfully", { autoClose: 2500 });
+      setDeleteTarget(null);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to delete subject"), { autoClose: 3500 });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
     <div className="add-subject-page">
       <AdminBreadcrumb items={breadcrumbItems} />
 
+      <ConfirmDeleteModal
+        isOpen={Boolean(deleteTarget)}
+        title="Delete Subject"
+        message={
+          deleteTarget
+            ? `Are you sure you want to delete ${deleteTarget.subjectCode || "this subject"}? This will remove related data like assignments and mappings.`
+            : "Are you sure you want to delete this subject?"
+        }
+        loading={deleting}
+        onCancel={() => (deleting ? null : setDeleteTarget(null))}
+        onConfirm={handleConfirmDelete}
+      />
+
       <div className="d-flex justify-content-center">
-        <div className="card border-0 shadow-sm w-100" style={{ maxWidth: 760, borderRadius: 14 }}>
+        <div className="card border-0 shadow-sm w-100" style={{ maxWidth: 1100, borderRadius: 14 }}>
           <div className="card-body p-4">
-            <h4 className="fw-bold mb-4">Add New Subject / Edit Subject</h4>
+            <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-4">
+              <h4 className="fw-bold mb-0">Add / Update Subject</h4>
 
-            <form onSubmit={handleSave}>
-              <div className="row g-4">
-                <div className="col-12 col-md-6">
-                  <label className="form-label fw-semibold">Subject Code</label>
-                  <input
-                    type="text"
-                    className={`form-control ${errors.subjectCode ? "is-invalid" : ""}`}
-                    value={subjectCode}
-                    onChange={(e) => setSubjectCode(e.target.value)}
-                    placeholder="CPP01"
-                  />
-                  {errors.subjectCode ? <div className="invalid-feedback">{errors.subjectCode}</div> : null}
-                </div>
+              <button
+                type="button"
+                className="btn btn-sm btn-primary d-inline-flex align-items-center gap-2"
+                onClick={addNewSubjectRow}
+              >
+                <Plus size={16} />
+                Add New Subject
+              </button>
+            </div>
 
-                <div className="col-12 col-md-6">
-                  <label className="form-label fw-semibold">Subject Name</label>
-                  <input
-                    type="text"
-                    className={`form-control ${errors.subjectName ? "is-invalid" : ""}`}
-                    value={subjectName}
-                    onChange={(e) => setSubjectName(e.target.value)}
-                    placeholder="C++"
-                  />
-                  {errors.subjectName ? <div className="invalid-feedback">{errors.subjectName}</div> : null}
-                </div>
+            {error ? <div className="text-danger mb-3">{error}</div> : null}
 
-                <div className="col-12 col-md-6">
-                  <label className="form-label fw-semibold">Start Date</label>
-                  <input
-                    type="date"
-                    className={`form-control ${errors.startDate ? "is-invalid" : ""}`}
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                  {errors.startDate ? <div className="invalid-feedback">{errors.startDate}</div> : null}
-                </div>
+            <div className="table-responsive">
+              <table className="table align-middle mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th scope="col" className="px-3 py-3 text-center" style={{ width: 80 }}>
+                      S.no
+                    </th>
+                    <th scope="col" className="px-3 py-3 text-center" style={{ width: 160 }}>
+                      Subject Code
+                    </th>
+                    <th scope="col" className="px-3 py-3 text-center" style={{ minWidth: 280 }}>
+                      Subject Name
+                    </th>
+                    <th scope="col" className="px-3 py-3 text-center" style={{ width: 140 }}>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
 
-                <div className="col-12 col-md-6">
-                  <label className="form-label fw-semibold">End Date</label>
-                  <input
-                    type="date"
-                    className={`form-control ${errors.endDate ? "is-invalid" : ""}`}
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                  {errors.endDate ? <div className="invalid-feedback">{errors.endDate}</div> : null}
-                </div>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td className="px-3 py-4 text-center text-secondary" colSpan={4}>
+                        Loading...
+                      </td>
+                    </tr>
+                  ) : existingSubjects.length || newSubjectRow ? (
+                    [
+                      ...(newSubjectRow ? [newSubjectRow] : []),
+                      ...existingSubjects,
+                    ].map((s, idx) => {
+                      const isRowEditing = String(editingSubjectId) === String(s.subjectId);
+                      const isNew = String(s?.subjectId) === NEW_SUBJECT_ID;
+                      const serialNo = isNew ? existingSubjects.length + 1 : idx + 1 - (newSubjectRow ? 1 : 0);
+                      return (
+                        <tr key={s.subjectId}>
+                          <td className="px-3 py-3 text-center text-secondary">{serialNo}</td>
 
-                <div className="col-12">
-                  <label className="form-label fw-semibold">Faculty(s)</label>
+                          <td className="px-3 py-3 text-center">
+                            {isRowEditing ? (
+                              <input
+                                type="text"
+                                className="form-control form-control-sm"
+                                value={editDraft.subjectCode}
+                                onChange={(e) => setEditDraft((p) => ({ ...p, subjectCode: e.target.value }))}
+                              />
+                            ) : (
+                              <span className="fw-semibold">{s.subjectCode}</span>
+                            )}
+                          </td>
 
-                  <div className="position-relative">
-                    <button
-                      type="button"
-                      className={`form-control d-flex align-items-center justify-content-between ${
-                        errors.faculties ? "is-invalid" : ""
-                      }`}
-                      onClick={() => setFacultyDropdownOpen((p) => !p)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <div className="d-flex align-items-center flex-wrap gap-2" style={{ minHeight: 24 }}>
-                        {faculties.length ? (
-                          faculties.map((f) => (
-                            <span
-                              key={f}
-                              className="badge text-bg-light border"
-                              style={{ fontWeight: 600 }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFaculty(f);
-                              }}
-                            >
-                              {f} <span className="ms-1">×</span>
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-secondary" style={{ fontSize: 14 }}>
-                            Select faculties
-                          </span>
-                        )}
-                      </div>
-                      <ChevronDown size={18} className="text-secondary" />
-                    </button>
+                          <td className="px-3 py-3">
+                            {isRowEditing ? (
+                              <input
+                                type="text"
+                                className="form-control form-control-sm"
+                                value={editDraft.subjectName}
+                                onChange={(e) => setEditDraft((p) => ({ ...p, subjectName: e.target.value }))}
+                              />
+                            ) : (
+                              <span className="text-secondary">{s.subjectName}</span>
+                            )}
+                          </td>
 
-                    {errors.faculties ? <div className="invalid-feedback d-block">{errors.faculties}</div> : null}
-
-                    {facultyDropdownOpen ? (
-                      <div
-                        className="position-absolute bg-white border shadow-sm w-100 mt-2"
-                        style={{ zIndex: 10, borderRadius: 12 }}
-                      >
-                        <div className="p-2 border-bottom">
-                          <div className="input-group">
-                            <span className="input-group-text bg-white border-0">
-                              <Search size={16} className="text-secondary" />
-                            </span>
-                            <input
-                              type="text"
-                              className="form-control border-0"
-                              value={facultySearch}
-                              onChange={(e) => setFacultySearch(e.target.value)}
-                              placeholder="Search"
-                            />
-                
-                          </div>
-                        </div>
-
-                        <div style={{ maxHeight: 220, overflowY: "auto" }}>
-                          {filteredFacultyOptions.map((faculty) => {
-                            const selected = faculties.includes(faculty);
-                            return (
-                              <button
-                                type="button"
-                                key={faculty}
-                                className="w-100 btn text-start d-flex align-items-center justify-content-between px-3 py-2"
-                                onClick={() => toggleFaculty(faculty)}
-                              >
-                                <span style={{ color: "#4f46e5", fontWeight: 600 }}>{faculty}</span>
-                                {selected ? <Check size={18} style={{ color: "#4f46e5" }} /> : <span />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="col-12">
-                  <label className="form-label fw-semibold">Status</label>
-                  <select
-                    className={`form-select ${errors.status ? "is-invalid" : ""}`}
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                  {errors.status ? <div className="invalid-feedback">{errors.status}</div> : null}
-                </div>
-
-                <div className="col-12 d-flex justify-content-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    className="btn btn-light border"
-                    onClick={() => navigate("/admin/subjects")}
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    Save Subject
-                  </button>
-                </div>
-              </div>
-            </form>
+                          <td className="px-3 py-3 text-center">
+                            {isRowEditing ? (
+                              <div className="d-inline-flex align-items-center gap-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-link text-secondary"
+                                  onClick={cancelEditRow}
+                                >
+                                  <X size={16} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-link text-success"
+                                  onClick={() => saveEditRow(s.subjectId)}
+                                >
+                                  <Check size={16} />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="d-inline-flex align-items-center gap-3">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-link p-0 text-secondary"
+                                  onClick={() => startEditRow(s)}
+                                >
+                                  <Pencil size={16} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-link p-0 text-danger"
+                                  onClick={() => confirmDeleteSubject(s)}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td className="px-3 py-4 text-center text-secondary" colSpan={4}>
+                        No subjects found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

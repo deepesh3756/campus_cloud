@@ -2,6 +2,7 @@ package com.campuscloud.academicservice.exception;
 
 import com.campuscloud.academicservice.dto.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -52,6 +53,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error("Validation failed: " + errors.toString()));
+    }
+    
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<?>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.error("Data integrity violation", ex);
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error("Cannot delete this record because it is referenced by other data"));
     }
     
     @ExceptionHandler(Exception.class)

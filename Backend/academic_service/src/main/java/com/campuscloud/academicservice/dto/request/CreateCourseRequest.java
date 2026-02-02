@@ -1,5 +1,6 @@
 package com.campuscloud.academicservice.dto.request;
 
+import com.campuscloud.academicservice.enums.CourseStatus;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -24,4 +25,6 @@ public class CreateCourseRequest {
     
     @Min(value = 1, message = "Duration must be at least 1 month")
     private Integer durationMonths;
+
+    private CourseStatus status;
 }
