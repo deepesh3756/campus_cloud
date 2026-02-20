@@ -39,6 +39,13 @@ public class AuthController
     public ResponseEntity<ApiResponse<LoginResponseDTO>> login2(
             @RequestBody LoginRequestDTO request
     ) {
+    	if (request.getUsername() == null || request.getUsername().isEmpty()) {
+    	    return ResponseEntity.badRequest().build();
+    	}
+
+    	if (request.getPassword() == null || request.getPassword().length() < 6) {
+    	    return ResponseEntity.badRequest().build();
+    	}
         // 1️⃣ Authenticate (internal result)
         AuthLoginResult result = authService.login(request);
 
